@@ -1,15 +1,15 @@
+use hf_hub::api::sync::ApiBuilder;
 use std::env;
 use std::path::Path;
-use hf_hub::api::sync::ApiBuilder;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
 
-const REPO_ID : &str = "KittenML/kitten-tts-mini-0.8";
+const REPO_ID: &str = "KittenML/kitten-tts-mini-0.8";
 //FIXME : avoid the copy-pasta below and use REPO_ID
 const FILES: [&str; 3] = [
     "KittenML/kitten-tts-mini-0.8/kitten_tts_mini_v0_8.onnx",
     "KittenML/kitten-tts-mini-0.8/config.json",
-    "KittenML/kitten-tts-mini-0.8/voices.npz"
+    "KittenML/kitten-tts-mini-0.8/voices.npz",
 ];
 
 fn main() {
