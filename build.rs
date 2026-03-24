@@ -5,21 +5,13 @@ use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
 
 const REPO_ID: &str = "KittenML/kitten-tts-mini-0.8";
-//FIXME : avoid the copy-pasta below and use REPO_ID
-const FILES: [&str; 3] = [
-    "KittenML/kitten-tts-mini-0.8/kitten_tts_mini_v0_8.onnx",
-    "KittenML/kitten-tts-mini-0.8/config.json",
-    "KittenML/kitten-tts-mini-0.8/voices.npz",
-];
+// Files to download from the hub - just the filenames, repo ID is handled separately
+const FILES: [&str; 3] = ["kitten_tts_mini_v0_8.onnx", "config.json", "voices.npz"];
 
 fn main() {
     let stdout = tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("debug"));
     tracing_subscriber::registry().with(stdout).init();
-    let download_enabled = env::var("CARGO_FEATURE_DOWNLOAD_MODELS").is_ok();
-    if !download_enabled {
-        tracing::warn!("Model downloading is disabled");
-        return;
-    }
+
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
     let model_dir = Path::new(&manifest_dir).join("models");
     if !model_dir.exists() {

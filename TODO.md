@@ -1,7 +1,7 @@
 # kittentts wasm - TODO
 
 ## inference
-- [ ] load ONNX model in wasm
+- [x] load ONNX model in wasm
 - [ ] Expose text input to inference function
 - [ ] handle model inference from js-sys
 - [ ] return inference results as structured data
@@ -27,4 +27,5 @@
 ## performance
 - [ ] profile wasm bundle
 - [ ] optimize hot paths
+- [ ] explore using WebGPU for hardware acceleration
 - [ ] test on different hardware
