@@ -6,3 +6,4 @@ dist
 *.wav
 *.log
 .vscode
+configs
