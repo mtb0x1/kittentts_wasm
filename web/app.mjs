@@ -52,9 +52,9 @@ async function main() {
         const t1 = performance.now();
 
         await loadModel();
-        
+
         const loadTimeMs = (performance.now() - t1).toFixed(0);
-        
+
         log("model", `loadModel() finished (+${loadTimeMs} ms)`);
         log("state", `isModelLoaded() = ${isModelLoaded()}`);
         log("done", `total ${(performance.now() - t0).toFixed(0)} ms`);
@@ -107,7 +107,7 @@ async function main() {
 
             hideError();
             audioOutput.classList.add('hidden');
-            
+
             // Set UI to processing
             textInput.disabled = true;
             voiceSelect.disabled = true;
@@ -121,13 +121,13 @@ async function main() {
             try {
                 const infer_t0 = performance.now();
                 log("infer", `Calling infer with text: "${text}", voice: "${voice}", speed: ${speed}`);
-                const result = infer(text);
-                
+                const result = infer(text, voice, speed);
+
                 const inferTimeMs = (performance.now() - infer_t0).toFixed(0);
                 // If it succeeds (which it shouldn't right now due to todo!)
                 console.log("Inference result:", result);
                 updateStatus(`Generation complete! (Took ${inferTimeMs}ms)`, "success");
-                
+
                 // TODO: Wire up actual audio blob when Rust returns it
                 // const blobUrl = URL.createObjectURL(blob);
                 // player.src = blobUrl;
@@ -144,7 +144,7 @@ async function main() {
                 generateBtn.disabled = false;
                 btnText.textContent = "Generate Audio";
                 btnLoader.classList.add('hidden');
-                
+
                 // If status wasn't set to "error" by catch, it will stay processing/success
                 if (!errorBanner.classList.contains('hidden')) {
                     updateStatus("Ready (Failed last run)", "error");

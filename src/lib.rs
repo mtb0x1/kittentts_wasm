@@ -54,6 +54,6 @@ pub fn is_model_loaded() -> bool {
 }
 
 #[wasm_bindgen]
-pub fn infer(_text: &str) -> Result<JsValue, JsValue> {
+pub fn infer(_text: &str, _voice: &str, _speed: f32) -> Result<JsValue, JsValue> {
     todo!("not yet!");
 }

@@ -2,7 +2,7 @@
 
 ## inference
 - [x] load ONNX model in wasm
-- [ ] Expose text input to inference function
+- [x] Expose text, voice and speed inputs to inference function
 - [ ] handle model inference from js-sys
 - [ ] return inference results as structured data
 
