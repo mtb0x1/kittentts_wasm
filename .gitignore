@@ -1,7 +1,7 @@
 /target
 /pkg
 /node_modules
-Cargo.lock
+web/voices.json
 dist
 *.wav
 *.log

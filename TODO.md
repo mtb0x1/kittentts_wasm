@@ -12,11 +12,11 @@
 - [ ] handle audio buffer conversion
 
 ## web interface
-- [ ] create single-page app (CSR)
-- [ ] text input form
-- [ ] display inference status/progress
-- [ ] play/download audio output
-- [ ] error handling and user feedback
+- [x] create single-page app (CSR)
+- [x] text input form
+- [x] display inference status/progress
+- [x] play/download audio output
+- [x] error handling and user feedback
 
 ## build & deploy
 - [ ] optimize wasm bundle size
@@ -29,3 +29,4 @@
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] test on different hardware
+- [ ] voices names need to be aligned (todo in build.rs)

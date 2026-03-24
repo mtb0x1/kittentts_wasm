@@ -5,9 +5,9 @@ use ort::session::Session;
 use ort::session::builder::{GraphOptimizationLevel, SessionBuilder};
 use std::sync::Arc;
 
-const ONNX_MODEL_BYTES: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx");
-const CONFIG_BYTES: &[u8] = include_bytes!("../models/config.json");
-const VOICES_BYTES: &[u8] = include_bytes!("../models/voices.npz");
+pub const ONNX_MODEL_BYTES: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx");
+pub const CONFIG_BYTES: &[u8] = include_bytes!("../models/config.json");
+pub const VOICES_BYTES: &[u8] = include_bytes!("../models/voices.npz");
 
 #[wasm_bindgen::prelude::wasm_bindgen(js_name = "WasmSession")]
 pub struct KittenSession {

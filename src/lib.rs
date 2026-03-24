@@ -52,3 +52,8 @@ pub async fn load_model() -> Result<(), JsValue> {
 pub fn is_model_loaded() -> bool {
     GLOBAL_SESSION.lock().map(|s| s.is_some()).unwrap_or(false)
 }
+
+#[wasm_bindgen]
+pub fn infer(_text: &str) -> Result<JsValue, JsValue> {
+    todo!("not yet!");
+}

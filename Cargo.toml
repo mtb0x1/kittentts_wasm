@@ -38,6 +38,7 @@ web-sys = { version = "0.3", features = [
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hf-hub = "0.5"
+zip = { version = "8.4.0", default-features = false, features = ["deflate"] }
 
 [profile.release]
 opt-level = "z"
