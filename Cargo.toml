@@ -46,4 +46,4 @@ codegen-units = 1
 strip = true
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = true
+wasm-opt = false
