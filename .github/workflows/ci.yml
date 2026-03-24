@@ -18,7 +18,7 @@ jobs:
       run: npm install -g rust-just
 
     - name: Install wasm-pack
-      run: curl https://rustwasm.org/wasm-pack/installer/init.sh -sSf | sh
+      run: cargo install wasm-pack
 
     - name: Build WASM
       run: just
