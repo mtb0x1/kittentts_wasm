@@ -1,0 +1,49 @@
+[package]
+name = "kittentts_wasm"
+description = "Experimental port of kittentts to wasm"
+repository = "https://github.com/mtb0x1/kittentts_wasm"
+license = "TBD"
+version = "0.0.8-mini"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+
+anyhow = "1"
+console_error_panic_hook = "0.1"
+js-sys = "0.3"
+once_cell = "1"
+ort = { git = "https://github.com/pykeio/ort", default-features = false }
+ort-sys = { git = "https://github.com/pykeio/ort", default-features = false }
+rayon = "1"
+serde = "1" 
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4", "js"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Document",
+    "HtmlElement",
+    "AudioContext",
+    "console",
+] }
+
+[build-dependencies]
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+hf-hub = "0.5"
+
+[profile.release]
+opt-level = "z"
+lto = false
+codegen-units = 1
+strip = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = true

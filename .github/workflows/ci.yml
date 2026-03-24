@@ -1,0 +1,42 @@
+name: Build & Deploy
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v6
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@nightly
+      with:
+        targets: wasm32-unknown-unknown
+      
+    - name: Install rust-just
+      run: npm install -g rust-just
+
+    - name: Install wasm-pack
+      run: curl https://rustwasm.org/wasm-pack/installer/init.sh -sSf | sh
+
+    - name: Build WASM
+      run: just
+    
+    - name: Install wasm-opt
+      run: npm install -g wasm-opt
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: wasm-build
+        path: pkg/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:   
+    - name: TBD
+      run:
+        echo "TBD"
+    
+ 
