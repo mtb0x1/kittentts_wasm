@@ -5,7 +5,7 @@
 - [x] Expose text, voice and speed inputs to inference function
 - [x] handle model inference from js-sys
 - [x] implement actual TextCleaner tokenization for input_ids
-- [ ] return inference results as structured data
+- [x] return inference results as structured data
 
 ## Audio processing
 - [ ] generate wav file from inference output

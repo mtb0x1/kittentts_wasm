@@ -113,10 +113,17 @@ pub async fn infer_on_cpu_with_params(
     //sync version .run_with_options(inputs, None)
     let run_options: RunOptions =
         RunOptions::new().map_err(|e| JsValue::from(format!("RunOptions error: {e}")))?;
-    let outputs = session
+    let mut outputs = session
         .run_async(inputs, &run_options)
         .await
         .map_err(|e| JsValue::from(format!("Inference failed: {e}")))?;
+
+    // Synchronize tensor data from JS runtime into WASM-accessible memory.
+    // Without this, try_extract_tensor fails because the data lives outside
+    // of WASM linear memory after run_async.
+    ort_web::sync_outputs(&mut outputs)
+        .await
+        .map_err(|e| JsValue::from(format!("Failed to sync outputs: {e}")))?;
 
     let waveform_out = outputs
         .get("waveform")
@@ -129,6 +136,9 @@ pub async fn infer_on_cpu_with_params(
     let (_shape, slice) = waveform_tensor;
 
     let len = slice.len();
+    if len == 0 {
+        return Err(JsValue::from("Inference failed: Output size is 0"));
+    }
     tracing::info!(
         "Inference success! Output size: {}, values: {:?}",
         len,

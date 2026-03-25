@@ -133,7 +133,7 @@ async function main() {
 
                 const inferTimeMs = (performance.now() - infer_t0).toFixed(0);
                 // POC log:
-                log("infer", `Inference POC returned :`, result);
+                log("infer", `Inference POC returned: ${result} (length=${result?.length})`);
                 updateStatus(`Generation complete! (Took ${inferTimeMs}ms)`, "success");
 
                 // TODO: Wire up actual audio blob when Rust returns it
