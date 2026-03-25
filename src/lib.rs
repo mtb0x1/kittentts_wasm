@@ -1,4 +1,7 @@
 use once_cell::sync::Lazy;
+use ort::session::RunOptions;
+use ort::session::Session;
+use ort::value::Tensor;
 use std::sync::{Arc, Mutex};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
@@ -53,7 +56,99 @@ pub fn is_model_loaded() -> bool {
     GLOBAL_SESSION.lock().map(|s| s.is_some()).unwrap_or(false)
 }
 
-#[wasm_bindgen]
-pub fn infer(_text: &str, _voice: &str, _speed: f32) -> Result<JsValue, JsValue> {
-    todo!("not yet!");
+#[wasm_bindgen(js_name = "infer")]
+pub async fn infer_on_cpu_with_params(
+    text: &str,
+    voice_offset: usize,
+    speed: f32,
+) -> Result<js_sys::Float32Array, JsValue> {
+    let mut global_session = GLOBAL_SESSION
+        .lock()
+        .map_err(|e| JsValue::from(format!("Lock error: {e}")))?;
+    let mut session_wrapper = global_session
+        .as_mut()
+        .ok_or_else(|| JsValue::from("Model not loaded yet"))?;
+    let session: &mut Session = session_wrapper.session_mut();
+
+    // TODO: Max 256 char, need to review this
+    let text_len = text.len().max(256);
+    let mut input_ids = ndarray::Array2::<i64>::from_elem((1usize, text_len), 0);
+    for (i, b) in text.bytes().enumerate() {
+        input_ids[[0, i]] = b as i64;
+    }
+
+    let speed_array = ndarray::Array1::<f32>::from_elem((1usize,), speed);
+
+    let input_ids_vec = input_ids.into_raw_vec();
+    let input_ids_val = Tensor::from_array((vec![1, text_len], input_ids_vec))
+        .map_err(|e| JsValue::from(format!("Failed to create input_ids: {e}")))?;
+
+    let ref_id = text.len().min(400 - 1);
+    let f32_offset = voice_offset + ref_id * 256;
+    let byte_offset = f32_offset * 4;
+
+    let mut style_vec = Vec::with_capacity(256);
+    let bytes_slice = session::VOICES_BIN;
+    if byte_offset + 256 * 4 > bytes_slice.len() {
+        return Err(JsValue::from("VOICES_BIN out of bounds"));
+    }
+    for i in 0..256 {
+        let start = byte_offset + i * 4;
+        let mut b = [0u8; 4];
+        b.copy_from_slice(&bytes_slice[start..start + 4]);
+        style_vec.push(f32::from_le_bytes(b));
+    }
+
+    let style_val = Tensor::from_array((vec![1, 256], style_vec))
+        .map_err(|e| JsValue::from(format!("Failed to create style: {e}")))?;
+
+    let speed_vec = speed_array.into_raw_vec();
+    let speed_val = Tensor::from_array((vec![1], speed_vec))
+        .map_err(|e| JsValue::from(format!("Failed to create speed: {e}")))?;
+
+    let inputs = ort::inputs![
+        "input_ids" => input_ids_val,
+        "style" => style_val,
+        "speed" => speed_val,
+    ];
+
+    //sync version .run_with_options(inputs, None)
+    let run_options: RunOptions =
+        RunOptions::new().map_err(|e| JsValue::from(format!("RunOptions error: {e}")))?;
+    let outputs = session
+        .run_async(inputs, &run_options)
+        .await
+        .map_err(|e| JsValue::from(format!("Inference failed: {e}")))?;
+
+    let waveform_out = outputs
+        .get("waveform")
+        .ok_or_else(|| JsValue::from("No waveform output found"))?;
+
+    let waveform_tensor = waveform_out
+        .try_extract_tensor::<f32>()
+        .map_err(|e| JsValue::from(format!("Waveform output not f32 tensor: {e}")))?;
+
+    let (_shape, slice) = waveform_tensor;
+
+    let len = slice.len();
+    tracing::info!(
+        "Inference success! Output size: {}, values: {:?}",
+        len,
+        &slice[..len]
+    );
+
+    // Return to JS
+    let js_array = js_sys::Float32Array::new_with_length(len as u32);
+    js_array.copy_from(&slice[..len]);
+
+    Ok(js_array)
+}
+
+#[wasm_bindgen(js_name = "infer_webgpu")]
+pub async fn infer_on_webgpu_with_params(
+    text: &str,
+    voice_offset: usize,
+    speed: f32,
+) -> Result<js_sys::Float32Array, JsValue> {
+    todo!("WebGPU inference not implemented yet")
 }

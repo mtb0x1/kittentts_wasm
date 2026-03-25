@@ -1,18 +1,16 @@
 use anyhow::{Context, Result, anyhow};
-use core::panic;
-use ort::environment::Environment;
 use ort::session::Session;
-use ort::session::builder::{GraphOptimizationLevel, SessionBuilder};
-use std::sync::Arc;
+use ort::session::builder::SessionBuilder;
+// use std::sync::Arc;
 
 pub const ONNX_MODEL_BYTES: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx");
 pub const CONFIG_BYTES: &[u8] = include_bytes!("../models/config.json");
-pub const VOICES_BYTES: &[u8] = include_bytes!("../models/voices.npz");
+pub const VOICES_BIN: &[u8] = include_bytes!("../models/voices.bin");
 
 #[wasm_bindgen::prelude::wasm_bindgen(js_name = "WasmSession")]
 pub struct KittenSession {
     // The actual ONNX session (inference engine)
-    session: Arc<Session>,
+    session: Session,
 }
 
 impl KittenSession {
@@ -38,8 +36,12 @@ impl KittenSession {
         tracing::info!("ONNX session created and optimized");
 
         Ok(KittenSession {
-            session: Arc::new(session),
+            session,
         })
+    }
+
+    pub(crate) fn session_mut(&mut self) -> &mut Session {
+        &mut self.session
     }
 
     pub(crate) fn session(&self) -> &Session {

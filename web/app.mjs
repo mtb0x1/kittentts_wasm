@@ -60,13 +60,14 @@ async function main() {
         log("done", `total ${(performance.now() - t0).toFixed(0)} ms`);
 
         // Populate voices
+        let currentVoices = [];
         try {
             const resp = await fetch('voices.json');
             if (resp.ok) {
-                const voices = await resp.json();
-                log("voices", `fetched ${voices.length} voices from voices.json`);
+                currentVoices = await resp.json();
+                log("voices", `fetched ${currentVoices.length} voices from voices.json`);
                 voiceSelect.innerHTML = '';
-                voices.forEach(v => {
+                currentVoices.forEach(v => {
                     const opt = document.createElement('option');
                     opt.value = v.technical;
                     opt.textContent = v.colloquial;
@@ -96,7 +97,7 @@ async function main() {
         // Generate click handler
         generateBtn.addEventListener('click', async () => {
             const text = textInput.value.trim();
-            const voice = voiceSelect.value;
+            const voiceTechnical = voiceSelect.value;
             const speed = parseFloat(speedSlider.value);
             const useWebGPU = webgpuCheckbox.checked;
 
@@ -104,6 +105,13 @@ async function main() {
                 showError("Please enter some text to synthesize.");
                 return;
             }
+
+            const voiceData = currentVoices.find(v => v.technical === voiceTechnical);
+            if (!voiceData) {
+                showError("Selected voice not found in metadata.");
+                return;
+            }
+            const voiceOffset = voiceData.offset;
 
             hideError();
             audioOutput.classList.add('hidden');
@@ -120,12 +128,12 @@ async function main() {
 
             try {
                 const infer_t0 = performance.now();
-                log("infer", `Calling infer with text: "${text}", voice: "${voice}", speed: ${speed}`);
-                const result = infer(text, voice, speed);
+                log("infer", `Calling infer with text: "${text}", voice: "${voiceTechnical}" (offset: ${voiceOffset}), speed: ${speed}`);
+                const result = await infer(text, voiceOffset, speed);
 
                 const inferTimeMs = (performance.now() - infer_t0).toFixed(0);
-                // If it succeeds (which it shouldn't right now due to todo!)
-                console.log("Inference result:", result);
+                // POC log:
+                log("infer", `Inference POC returned :`, result);
                 updateStatus(`Generation complete! (Took ${inferTimeMs}ms)`, "success");
 
                 // TODO: Wire up actual audio blob when Rust returns it

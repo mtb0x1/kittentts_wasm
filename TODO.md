@@ -3,7 +3,8 @@
 ## inference
 - [x] load ONNX model in wasm
 - [x] Expose text, voice and speed inputs to inference function
-- [ ] handle model inference from js-sys
+- [x] handle model inference from js-sys
+- [ ] implement actual TextCleaner tokenization for input_ids
 - [ ] return inference results as structured data
 
 ## Audio processing

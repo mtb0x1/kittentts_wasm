@@ -1,30 +1,20 @@
 use hf_hub::api::sync::ApiBuilder;
+use serde::Deserialize;
+use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
 
+#[derive(Deserialize)]
+struct Metadata {
+    voice_aliases: HashMap<String, String>,
+}
+
 const REPO_ID: &str = "KittenML/kitten-tts-mini-0.8";
+
 // Files to download from the hub - just the filenames, repo ID is handled separately
 const FILES: [&str; 3] = ["kitten_tts_mini_v0_8.onnx", "config.json", "voices.npz"];
-
-//TODO: this will do for now
-//      but in https://github.com/KittenML/KittenTTS
-//      voice have English names (i.e: 'Bella', 'Jasper' ... etc)
-//      we need to figure out how to get/map those vs voices.npz/json
-fn format_colloquial_name(technical: &str) -> String {
-    let parts: Vec<&str> = technical.split('-').collect();
-    if parts.len() >= 3 {
-        let id = match parts[3] {
-            "m" => "Male",
-            "f" => "Female",
-            _ => parts[3],
-        };
-        format!("Voice {} {}", parts[2], id)
-    } else {
-        technical.to_string()
-    }
-}
 
 fn main() {
     let stdout = tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("debug"));
@@ -74,23 +64,54 @@ fn main() {
         }
     }
 
-    // Extract voices.npz to web/voices.json
+    // Extract voices.npz to web/voices.json and models/voices.bin
     let voices_npz_path = model_dir.join("voices.npz");
-    if voices_npz_path.exists() {
-        tracing::info!("Extracting voices to web/voices.json");
+    let config_path = model_dir.join("config.json");
+
+    if voices_npz_path.exists() && config_path.exists() {
+        tracing::info!("Extracting voices to web/voices.json and models/voices.bin");
+
+        let config_content =
+            std::fs::read_to_string(&config_path).expect("Failed to read config.json");
+        let metadata: Metadata =
+            serde_json::from_str(&config_content).expect("Failed to parse config.json");
+
+        // Reverse mapping: technical -> colloquial alias
+        let technical_to_alias: HashMap<String, String> = metadata
+            .voice_aliases
+            .into_iter()
+            .map(|(alias, technical)| (technical, alias))
+            .collect();
+
         let file = std::fs::File::open(&voices_npz_path).expect("Failed to open voices.npz");
         let mut archive = zip::ZipArchive::new(file).expect("Failed to read zip archive");
         let mut voices = Vec::new();
 
+        let mut voices_bin = Vec::new();
+
         for i in 0..archive.len() {
-            let file = archive.by_index(i).unwrap();
-            let name = file.name();
+            let mut file = archive.by_index(i).unwrap();
+            let name = file.name().to_string();
             if name.ends_with(".npy") {
                 let technical = name.trim_end_matches(".npy").to_string();
-                let colloquial = format_colloquial_name(&technical);
+                let display_name = technical_to_alias.get(&technical).unwrap_or(&technical);
+                let colloquial = display_name.to_string();
+
+                // Read the .npy file content
+                let mut content: Vec<u8> = Vec::new();
+                std::io::Read::read_to_end(&mut file, &mut content).unwrap();
+
+                // numpy header: \x93NUMPY \x01 \x00 <header_len u16 LE>
+                let header_len = u16::from_le_bytes(content[8..10].try_into().unwrap()) as usize;
+                let data_start = 10 + header_len;
+                let raw_data = &content[data_start..];
+
+                let current_offset = voices_bin.len() / 4; // offset in f32 elements
+                voices_bin.extend_from_slice(raw_data);
+
                 voices.push(format!(
-                    r#"{{"technical": "{}", "colloquial": "{}"}}"#,
-                    technical, colloquial
+                    r#"{{"technical": "{}", "colloquial": "{}", "offset": {}}}"#,
+                    technical, colloquial, current_offset
                 ));
             }
         }
@@ -101,5 +122,7 @@ fn main() {
             std::fs::create_dir_all(&web_dir).expect("Failed to create web directory");
         }
         std::fs::write(web_dir.join("voices.json"), json).expect("Failed to write voices.json");
+        std::fs::write(model_dir.join("voices.bin"), voices_bin)
+            .expect("Failed to write voices.bin");
     }
 }
