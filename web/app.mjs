@@ -1,4 +1,5 @@
 import wasmInit, { loadModel, isModelLoaded, infer } from "../pkg/kittentts_wasm.js";
+import { encodeWav } from "./wav.mjs";
 
 const textInput = document.getElementById('text-input');
 const voiceSelect = document.getElementById('voice-select');
@@ -13,6 +14,9 @@ const statusIndicator = document.querySelector('.status-indicator');
 const errorBanner = document.getElementById('error-banner');
 const audioOutput = document.getElementById('audio-output');
 const player = document.getElementById('player');
+const downloadLink = document.getElementById('download-link');
+
+let currentBlobUrl = null;
 
 const log = (phase, detail) => {
     const msg = detail !== undefined ? `[kittentts] ${phase}: ${detail}` : `[kittentts] ${phase}`;
@@ -132,14 +136,21 @@ async function main() {
                 const result = await infer(text, voiceOffset, speed);
 
                 const inferTimeMs = (performance.now() - infer_t0).toFixed(0);
-                // POC log:
-                log("infer", `Inference POC returned: ${result} (length=${result?.length})`);
-                updateStatus(`Generation complete! (Took ${inferTimeMs}ms)`, "success");
+                log("infer", `Inference returned ${result.length} samples (${inferTimeMs}ms)`);
 
-                // TODO: Wire up actual audio blob when Rust returns it
-                // const blobUrl = URL.createObjectURL(blob);
-                // player.src = blobUrl;
-                // audioOutput.classList.remove('hidden');
+                // Encode raw PCM f32 samples → WAV blob
+                const wavBlob = encodeWav(result);
+                log("wav", `encoded ${wavBlob.size} bytes`);
+
+                // Revoke previous blob URL to free memory
+                if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = URL.createObjectURL(wavBlob);
+
+                player.src = currentBlobUrl;
+                downloadLink.href = currentBlobUrl;
+                downloadLink.download = `kittentts_${Date.now()}.wav`;
+                audioOutput.classList.remove('hidden');
+                updateStatus(`Generation complete! (${inferTimeMs}ms, ${result.length} samples)`, "success");
             } catch (e) {
                 console.error("[kittentts] inference failed", e);
                 showError(`Inference failed: ${e.toString()}`);

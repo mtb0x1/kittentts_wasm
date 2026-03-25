@@ -8,9 +8,10 @@
 - [x] return inference results as structured data
 
 ## Audio processing
-- [ ] generate wav file from inference output
-- [ ] stream wav back to JavaScript
-- [ ] handle audio buffer conversion
+- [x] generate wav file from inference output
+- [x] stream wav back to JavaScript
+- [x] handle audio buffer download/playback
+- [ ] integrate espeak phonemization (JS-side espeak.js interop for WASM)
 
 ## web interface
 - [x] create single-page app (CSR)
@@ -30,5 +31,5 @@
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] test on different hardware
-- [ ] integrate espeak phonemization (JS-side espeak.js interop for WASM)
 - [x] voices names need to be aligned (todo in build.rs)
+- [ ] clean cargo dep : remove useless crates.
