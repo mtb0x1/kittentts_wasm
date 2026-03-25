@@ -15,6 +15,8 @@ const REPO_ID: &str = "KittenML/kitten-tts-mini-0.8";
 
 // Files to download from the hub - just the filenames, repo ID is handled separately
 const FILES: [&str; 3] = ["kitten_tts_mini_v0_8.onnx", "config.json", "voices.npz"];
+const DICT: &str =
+    "https://raw.githubusercontent.com/Alexir/CMUdict/refs/heads/master/cmudict-0.7b";
 
 fn main() {
     let stdout = tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("debug"));
@@ -22,6 +24,7 @@ fn main() {
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
     let model_dir = Path::new(&manifest_dir).join("models");
+    let web_dir = Path::new(&manifest_dir).join("web");
     if !model_dir.exists() {
         std::fs::create_dir_all(&model_dir).expect("Failed to create model directory");
     }
@@ -124,5 +127,12 @@ fn main() {
         std::fs::write(web_dir.join("voices.json"), json).expect("Failed to write voices.json");
         std::fs::write(model_dir.join("voices.bin"), voices_bin)
             .expect("Failed to write voices.bin");
+        //use reqwest to download DICT and save it under web/cmu.dict
+        let dict_path = web_dir.join("cmu.dict");
+        if !dict_path.exists() {
+            let mut response = reqwest::blocking::get(DICT).expect("Failed to download dict");
+            let mut file = std::fs::File::create(&dict_path).expect("Failed to create dict file");
+            std::io::copy(&mut response, &mut file).expect("Failed to write dict file");
+        }
     }
 }

@@ -7,10 +7,10 @@ use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
 use wasm_bindgen::prelude::*;
 
+mod phonemizer;
 mod session;
-mod text_cleaner;
+use phonemizer::{Phonemizer, get_tokens};
 use session::KittenSession;
-use text_cleaner::TextCleaner;
 
 static GLOBAL_TRACING: Lazy<Mutex<()>> = Lazy::new(|| {
     let stdout = tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("ort=debug"));
@@ -26,11 +26,18 @@ pub fn init() {
     // Initialize tracing subsystem once at wasm startup
     let _unused = GLOBAL_TRACING.try_lock();
     console_error_panic_hook::set_once();
+    if !is_model_loaded() {
+        let _ = load_model();
+    }
     tracing::info!("KittenTTS WASM initialized");
 }
 
 #[wasm_bindgen(js_name = "loadModel")]
 pub async fn load_model() -> Result<(), JsValue> {
+    if is_model_loaded() {
+        tracing::info!("Model already loaded");
+        return Ok(());
+    }
     tracing::info!("Initializing ORT Web API");
     let api = ort_web::api(ort_web::FEATURE_NONE)
         .await
@@ -58,6 +65,13 @@ pub fn is_model_loaded() -> bool {
     GLOBAL_SESSION.lock().map(|s| s.is_some()).unwrap_or(false)
 }
 
+pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
+    text.split_whitespace()
+        .flat_map(|word| phonemizer.phonemize(word))
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
 #[wasm_bindgen(js_name = "infer")]
 pub async fn infer_on_cpu_with_params(
     text: &str,
@@ -72,9 +86,16 @@ pub async fn infer_on_cpu_with_params(
         .ok_or_else(|| JsValue::from("Model not loaded yet"))?;
     let session: &mut Session = session_wrapper.session_mut();
 
-    let cleaner = TextCleaner::new();
-    let tokens = cleaner.tokenize_for_model(text);
-    let text_len = tokens.len();
+    let phonemizer = Phonemizer::new()
+        .map_err(|e| JsValue::from(format!("Failed to create phonemizer: {e}")))?;
+    let tokens_lookup = get_tokens();
+    let tokens: Vec<i64> = phonemize(text, &phonemizer)
+        .chars()
+        .flat_map(|c| tokens_lookup.get(&c))
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let text_len = text.len();
 
     let speed_array = ndarray::Array1::<f32>::from_elem((1usize,), speed);
 

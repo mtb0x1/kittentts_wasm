@@ -4,14 +4,14 @@
 - [x] load ONNX model in wasm
 - [x] Expose text, voice and speed inputs to inference function
 - [x] handle model inference from js-sys
-- [x] implement actual TextCleaner tokenization for input_ids
+- [xx] implement actual phonemizer for tokenization 
 - [x] return inference results as structured data
 
 ## Audio processing
 - [x] generate wav file from inference output
 - [x] stream wav back to JavaScript
 - [x] handle audio buffer download/playback
-- [ ] integrate espeak phonemization (JS-side espeak.js interop for WASM)
+
 
 ## web interface
 - [x] create single-page app (CSR)
