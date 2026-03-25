@@ -31,4 +31,4 @@
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] test on different hardware
 - [ ] integrate espeak phonemization (JS-side espeak.js interop for WASM)
-- [ ] voices names need to be aligned (todo in build.rs)
+- [x] voices names need to be aligned (todo in build.rs)
