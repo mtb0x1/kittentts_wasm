@@ -4,7 +4,7 @@
 - [x] load ONNX model in wasm
 - [x] Expose text, voice and speed inputs to inference function
 - [x] handle model inference from js-sys
-- [ ] implement actual TextCleaner tokenization for input_ids
+- [x] implement actual TextCleaner tokenization for input_ids
 - [ ] return inference results as structured data
 
 ## Audio processing
@@ -30,4 +30,5 @@
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] test on different hardware
+- [ ] integrate espeak phonemization (JS-side espeak.js interop for WASM)
 - [ ] voices names need to be aligned (todo in build.rs)

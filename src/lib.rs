@@ -8,7 +8,9 @@ use tracing_subscriber::prelude::*;
 use wasm_bindgen::prelude::*;
 
 mod session;
+mod text_cleaner;
 use session::KittenSession;
+use text_cleaner::TextCleaner;
 
 static GLOBAL_TRACING: Lazy<Mutex<()>> = Lazy::new(|| {
     let stdout = tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("ort=debug"));
@@ -70,17 +72,13 @@ pub async fn infer_on_cpu_with_params(
         .ok_or_else(|| JsValue::from("Model not loaded yet"))?;
     let session: &mut Session = session_wrapper.session_mut();
 
-    // TODO: Max 256 char, need to review this
-    let text_len = text.len().max(256);
-    let mut input_ids = ndarray::Array2::<i64>::from_elem((1usize, text_len), 0);
-    for (i, b) in text.bytes().enumerate() {
-        input_ids[[0, i]] = b as i64;
-    }
+    let cleaner = TextCleaner::new();
+    let tokens = cleaner.tokenize_for_model(text);
+    let text_len = tokens.len();
 
     let speed_array = ndarray::Array1::<f32>::from_elem((1usize,), speed);
 
-    let input_ids_vec = input_ids.into_raw_vec();
-    let input_ids_val = Tensor::from_array((vec![1, text_len], input_ids_vec))
+    let input_ids_val = Tensor::from_array((vec![1, text_len], tokens))
         .map_err(|e| JsValue::from(format!("Failed to create input_ids: {e}")))?;
 
     let ref_id = text.len().min(400 - 1);
