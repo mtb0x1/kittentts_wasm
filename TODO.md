@@ -4,7 +4,7 @@
 - [x] load ONNX model in wasm
 - [x] Expose text, voice and speed inputs to inference function
 - [x] handle model inference from js-sys
-- [xx] implement actual phonemizer for tokenization 
+- [x] implement actual phonemizer for tokenization 
 - [x] return inference results as structured data
 
 ## Audio processing
@@ -22,14 +22,17 @@
 
 ## build & deploy
 - [ ] optimize wasm bundle size
-- [ ] test in browser
-- [ ] handle CORS if needed
-- [ ] document usage
+- [x] test in browser
+- [x] handle CORS if needed
+- [x] document usage
 
 ## performance
 - [ ] profile wasm bundle
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
+- [ ] explore using WebNN (browser API for ml inference) for better perfs
+- [ ] activate simd feature for wasm
+- [ ] test on different hardware
 - [ ] test on different hardware
 - [x] voices names need to be aligned (todo in build.rs)
 - [ ] clean cargo dep : remove useless crates.
