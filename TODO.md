@@ -22,6 +22,9 @@
 
 ## build & deploy
 - [ ] optimize wasm bundle size
+    - [x] using wasm-opt we shave only 100kb on 82Mb 
+        `wasm-opt --all-features -O4 kittentts_wasm_bg.wasm -o kittentts_wasm_bg_opt.wasm`
+    - [ ] zip onnx and bin files to reduce size, and unzip in memory at _start
 - [x] test in browser
 - [x] handle CORS if needed
 - [x] document usage
@@ -32,7 +35,6 @@
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] explore using WebNN (browser API for ml inference) for better perfs
 - [x] activate simd feature for wasm and more
-- [ ] test on different hardware
 - [ ] test on different hardware
 - [x] voices names need to be aligned (todo in build.rs)
 - [ ] clean cargo dep : remove useless crates.

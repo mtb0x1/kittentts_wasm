@@ -24,7 +24,7 @@ jobs:
       run: npm install -g wasm-opt
 
     - name: Build WASM
-      run: just
+      run: just build-release
             
     - name: Upload artifact
       uses: actions/upload-artifact@v7
