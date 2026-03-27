@@ -19,7 +19,7 @@ const downloadLink = document.getElementById('download-link');
 let currentBlobUrl = null;
 
 const log = (phase, detail) => {
-    const msg = detail !== undefined ? `[kittentts] ${phase}: ${detail}` : `[kittentts] ${phase}`;
+    const msg = detail !== undefined ? `[kittentts_js] ${phase}: ${detail}` : `[kittentts_js] ${phase}`;
     console.log(msg);
 };
 
@@ -44,6 +44,13 @@ function hideError() {
 
 async function main() {
     const t0 = performance.now();
+    const urlParams = new URLSearchParams(window.location.search);
+    const tracing_param = urlParams.get('tracing');
+    const tracing_level_param = urlParams.get('level');
+    if (tracing_param) {
+        log("boot", `tracing: ${tracing_param}, level: ${tracing_level_param}`);
+    }
+
     log("boot", "starting wasm init");
     updateStatus("Loading WASM environment...", 'processing');
 

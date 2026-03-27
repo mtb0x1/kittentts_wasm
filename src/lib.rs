@@ -12,22 +12,45 @@ mod session;
 use phonemizer::{Phonemizer, get_tokens};
 use session::KittenSession;
 
-static GLOBAL_TRACING: Lazy<Mutex<()>> = Lazy::new(|| {
-    let stdout = tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("ort=debug"));
-    tracing_subscriber::registry().with(stdout).init();
-    Mutex::new(())
-});
+static GLOBAL_TRACING: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 
 static GLOBAL_SESSION: Lazy<Arc<Mutex<Option<KittenSession>>>> =
     Lazy::new(|| Arc::new(Mutex::new(None)));
 
 #[wasm_bindgen(start)]
 pub fn init() {
-    // Initialize tracing subsystem once at wasm startup
-    let _unused = GLOBAL_TRACING.try_lock();
     console_error_panic_hook::set_once();
-    if !is_model_loaded() {
-        let _ = load_model();
+    let window = web_sys::window().expect("no global `window` exists");
+    let location = window.location();
+    let search = location.search().unwrap_or_default();
+    let params = web_sys::UrlSearchParams::new_with_str(&search).unwrap();
+    let tracing_param = params.get("tracing");
+    let tracing_level_param = params.get("level");
+
+    if let Some(tracing_val) = tracing_param {
+        let mut initialized = GLOBAL_TRACING.lock().unwrap();
+        if !*initialized {
+            let enabled = matches!(tracing_val.to_lowercase().as_str(), "on" | "1" | "true");
+
+            if enabled {
+                let level_str = tracing_level_param.unwrap_or_else(|| "trace".to_string());
+                let filter = match level_str.to_lowercase().as_str() {
+                    "debug" | "info" | "warn" | "error" | "trace" => {
+                        EnvFilter::new(format!("ort={level_str},kittentts_wasm={level_str}"))
+                    }
+                    _ => EnvFilter::new(format!("ort=trace,kittentts_wasm=trace")),
+                };
+
+                let layer = tracing_subscriber::fmt::layer()
+                    .with_ansi(false)
+                    .without_time() // Fix: "time not implemented on this platform"
+                    .with_writer(tracing_web::MakeConsoleWriter)
+                    .with_filter(filter);
+
+                let _ = tracing_subscriber::registry().with(layer).try_init();
+            }
+            *initialized = true;
+        }
     }
     tracing::info!("KittenTTS WASM initialized");
 }
@@ -62,7 +85,9 @@ pub async fn load_model() -> Result<(), JsValue> {
 // Check if the model is currently loaded in memory.
 #[wasm_bindgen(js_name = "isModelLoaded")]
 pub fn is_model_loaded() -> bool {
-    GLOBAL_SESSION.lock().map(|s| s.is_some()).unwrap_or(false)
+    let loaded = GLOBAL_SESSION.lock().map(|s| s.is_some()).unwrap_or(false);
+    tracing::info!("Model loaded: {}", loaded);
+    loaded
 }
 
 pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
@@ -175,9 +200,9 @@ pub async fn infer_on_cpu_with_params(
 
 #[wasm_bindgen(js_name = "infer_webgpu")]
 pub async fn infer_on_webgpu_with_params(
-    text: &str,
-    voice_offset: usize,
-    speed: f32,
+    _text: &str,
+    _voice_offset: usize,
+    _speed: f32,
 ) -> Result<js_sys::Float32Array, JsValue> {
     todo!("WebGPU inference not implemented yet")
 }

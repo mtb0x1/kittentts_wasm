@@ -3,8 +3,6 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::prelude::*;
 
 #[derive(Deserialize)]
 struct Metadata {
