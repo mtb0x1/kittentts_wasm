@@ -31,7 +31,7 @@
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] explore using WebNN (browser API for ml inference) for better perfs
-- [ ] activate simd feature for wasm
+- [x] activate simd feature for wasm and more
 - [ ] test on different hardware
 - [ ] test on different hardware
 - [x] voices names need to be aligned (todo in build.rs)

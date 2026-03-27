@@ -2,4 +2,7 @@
 target = "wasm32-unknown-unknown"
 
 [target.wasm32-unknown-unknown]
-rustflags = ["-C", "target-feature=+relaxed-simd,+simd128"]
+rustflags = [
+    "-C",
+    "target-feature=+relaxed-simd,+simd128,+bulk-memory,+mutable-globals",
+]
