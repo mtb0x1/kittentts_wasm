@@ -31,7 +31,9 @@
 - [x] document usage
 
 ## performance
-- [ ] profile wasm bundle
+- [ ] inference time is too long :
+    - [ ] gets worst with time (mem leak ?)
+    - [ ] gets worst(10x factor) with input size (10 chars vs 100 chars)
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] explore using WebNN (browser API for ml inference) for better perfs
