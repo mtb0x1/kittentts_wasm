@@ -1,6 +1,6 @@
 [package]
 name = "kittentts_wasm"
-description = "Experimental port of kittentts to wasm"
+description = "KittenTTS wasm : CSR app using rust"
 repository = "https://github.com/mtb0x1/kittentts_wasm"
 license = "TBD"
 version = "0.0.8-mini"
