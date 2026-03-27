@@ -191,6 +191,7 @@ pub async fn infer_on_cpu_with_params(
         .map_err(|e| JsValue::from(format!("Inference failed: {e}")))?;
 
     tracing::info!("Inference complete, synchronizing outputs");
+
     ort_web::sync_outputs(&mut outputs)
         .await
         .map_err(|e| JsValue::from(format!("Failed to sync outputs: {e}")))?;

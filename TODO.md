@@ -32,6 +32,8 @@
 
 ## performance
 - [ ] inference time is too long :
+    - 99% of time is allocated to : `session.run_async(inputs, &run_options).await`
+    - [ ] explore alternative backends (https://ort.pyke.io/backends)
     - [ ] gets worst with time (mem leak ?)
     - [ ] gets worst(10x factor) with input size (10 chars vs 100 chars)
 - [ ] optimize hot paths
