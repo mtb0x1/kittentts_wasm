@@ -2,6 +2,7 @@ use wasm_bindgen::JsValue;
 use web_sys::{Blob, BlobPropertyBag};
 
 pub fn save_as_wav(data: &[f32], sample_rate: Option<u32>) -> Vec<u8> {
+    tracing::debug!("Entering save_as_wav");
     let sample_rate = sample_rate.unwrap_or(24000);
     let num_samples = data.len() as u32;
     let num_channels = 1u16;
@@ -33,6 +34,7 @@ pub fn save_as_wav(data: &[f32], sample_rate: Option<u32>) -> Vec<u8> {
         unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) };
     file.extend_from_slice(byte_data);
 
+    tracing::debug!("Exiting save_as_wav, file size: {}", file.len());
     file
 }
 
@@ -41,6 +43,7 @@ pub fn process_and_get_blob(
     len: usize,
     sample_rate: Option<u32>,
 ) -> Result<Blob, JsValue> {
+    tracing::debug!("Entering process_and_get_blob, len: {}", len);
     let wav_bin = save_as_wav(&slice[..len], sample_rate);
 
     let js_array_view = unsafe { js_sys::Uint8Array::view(&wav_bin) };
@@ -51,6 +54,8 @@ pub fn process_and_get_blob(
     let options = BlobPropertyBag::new();
     options.set_type("audio/wav");
 
-    Blob::new_with_u8_array_sequence_and_options(&array, &options)
-        .map_err(|e| JsValue::from(format!("Failed to create Blob: {:?}", e)))
+    let blob = Blob::new_with_u8_array_sequence_and_options(&array, &options)
+        .map_err(|e| JsValue::from(format!("Failed to create Blob: {:?}", e)))?;
+    tracing::debug!("Exiting process_and_get_blob, blob size: {}", blob.size());
+    Ok(blob)
 }

@@ -29,13 +29,13 @@ fn main() {
         .filter(|&model| !model_dir.join(model).exists())
         .collect::<Vec<_>>();
     if need_download_models.is_empty() {
-        tracing::info!("No need for downloading models...");
+        println!("No need for downloading models...");
     } else {
         let api = ApiBuilder::new().with_progress(true).build().unwrap();
         let downloaded_path = need_download_models
             .iter()
             .map(|&model| {
-                tracing::info!("Downloading model: {}", model);
+                println!("Downloading model: {}", model);
                 api.model(REPO_ID.to_string())
                     .get(model)
                     .expect("Failed to download model")
@@ -45,10 +45,10 @@ fn main() {
             let file_name = src.file_name().unwrap();
             let link_path = model_dir.join(file_name);
             if link_path.exists() {
-                tracing::warn!("Link {} already exists, skip", file_name.to_string_lossy());
+                println!("Link {} already exists, skip", file_name.to_string_lossy());
                 continue;
             }
-            tracing::info!(
+            println!(
                 "Creating symlink: {} → {}",
                 link_path.display(),
                 src.display()
@@ -67,7 +67,7 @@ fn main() {
     let config_path = model_dir.join("config.json");
 
     if voices_npz_path.exists() && config_path.exists() {
-        tracing::info!("Extracting voices to web/voices.json and models/voices.bin");
+        println!("Extracting voices to web/voices.json and models/voices.bin");
 
         let config_content =
             std::fs::read_to_string(&config_path).expect("Failed to read config.json");

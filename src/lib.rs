@@ -4,7 +4,12 @@ use ort::session::Session;
 use ort::value::Tensor;
 use std::sync::{Arc, Mutex};
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::fmt::{
+    format::{FmtSpan, Pretty},
+    time::UtcTime,
+};
 use tracing_subscriber::prelude::*;
+
 use wasm_bindgen::prelude::*;
 use web_sys::Blob;
 
@@ -44,13 +49,20 @@ pub fn init() {
                     _ => EnvFilter::new(format!("ort=trace,kittentts_wasm=trace")),
                 };
 
-                let layer = tracing_subscriber::fmt::layer()
+                let fmt_layer = tracing_subscriber::fmt::layer()
                     .with_ansi(false)
-                    .without_time() // Fix: "time not implemented on this platform"
                     .with_writer(tracing_web::MakeConsoleWriter)
+                    .with_span_events(FmtSpan::ACTIVE)
+                    .with_timer(UtcTime::rfc_3339())
                     .with_filter(filter);
 
-                let _ = tracing_subscriber::registry().with(layer).try_init();
+                let perf_layer =
+                    tracing_web::performance_layer().with_details_from_fields(Pretty::default());
+                let _ = tracing_subscriber::registry()
+                    .with(fmt_layer)
+                    .with(perf_layer)
+                    .try_init()
+                    .unwrap();
             }
             *initialized = true;
         }
@@ -106,6 +118,13 @@ pub async fn infer_on_cpu_with_params(
     voice_offset: usize,
     speed: f32,
 ) -> Result<Blob, JsValue> {
+    tracing::info!(
+        "Inference start: text_len={}, voice_offset={}, speed={}",
+        text.len(),
+        voice_offset,
+        speed
+    );
+
     let mut global_session = GLOBAL_SESSION
         .lock()
         .map_err(|e| JsValue::from(format!("Lock error: {e}")))?;
@@ -124,6 +143,7 @@ pub async fn infer_on_cpu_with_params(
         .collect::<Vec<_>>();
 
     let tokens_len = tokens.len();
+    tracing::debug!("Phonemization complete: {} tokens", tokens_len);
 
     let speed_array = ndarray::Array1::<f32>::from_elem((1usize,), speed);
 
@@ -153,23 +173,24 @@ pub async fn infer_on_cpu_with_params(
     let speed_val = Tensor::from_array((vec![1], speed_vec))
         .map_err(|e| JsValue::from(format!("Failed to create speed: {e}")))?;
 
+    tracing::debug!("Input tensors prepared (input_ids, style, speed)");
+
     let inputs = ort::inputs![
         "input_ids" => input_ids_val,
         "style" => style_val,
         "speed" => speed_val,
     ];
 
-    //sync version .run_with_options(inputs, None)
     let run_options: RunOptions =
         RunOptions::new().map_err(|e| JsValue::from(format!("RunOptions error: {e}")))?;
+
+    tracing::info!("Starting ORT inference run");
     let mut outputs = session
         .run_async(inputs, &run_options)
         .await
         .map_err(|e| JsValue::from(format!("Inference failed: {e}")))?;
 
-    // Synchronize tensor data from JS runtime into WASM-accessible memory.
-    // Without this, try_extract_tensor fails because the data lives outside
-    // of WASM linear memory after run_async.
+    tracing::info!("Inference complete, synchronizing outputs");
     ort_web::sync_outputs(&mut outputs)
         .await
         .map_err(|e| JsValue::from(format!("Failed to sync outputs: {e}")))?;
@@ -188,11 +209,14 @@ pub async fn infer_on_cpu_with_params(
     if len == 0 {
         return Err(JsValue::from("Inference failed: Output size is 0"));
     }
+    tracing::debug!("Waveform extracted: {} samples", len);
+
     tracing::trace!(
-        "Inference success! Output size: {}, first 10 values: {:?}",
-        len,
+        "Inference success! First 10 values: {:?}",
         &slice[..std::cmp::min(len, 10)]
     );
+
+    tracing::info!("Processing audio and generating WAV blob");
 
     process_and_get_blob(&slice[..len], len, None)
 }

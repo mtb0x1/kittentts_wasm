@@ -14,6 +14,7 @@ pub struct KittenSession {
 
 impl KittenSession {
     pub async fn load_async() -> Result<Self> {
+        tracing::debug!("Entering KittenSession::load_async");
         tracing::info!("Loading embedded KittenTTS model");
 
         tracing::info!(
@@ -33,6 +34,7 @@ impl KittenSession {
 
         tracing::info!("ONNX session created and optimized");
 
+        tracing::debug!("Exiting KittenSession::load_async successfully");
         Ok(KittenSession { session })
     }
 

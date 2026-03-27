@@ -275,6 +275,7 @@ pub fn get_tokens() -> HashMap<char, i64> {
 }
 impl Phonemizer {
     pub fn new() -> Result<Self, PhonemizerError> {
+        tracing::debug!("Loading phonemizer dictionary from embedded CMU dict");
         let dict = Cmudict::from_str(DICT).map_err(|e| PhonemizerError::DictLoad(e.to_string()))?;
         let ipa = get_ipa();
         Ok(Self { dict, ipa })
@@ -291,7 +292,10 @@ impl Phonemizer {
             let rule_from_str = Rule::from_str(upper_case.as_str());
             match rule_from_str {
                 Ok(rule) => rule,
-                Err(_) => return None,
+                Err(_) => {
+                    tracing::warn!("Word not found in dictionary: {}", word);
+                    return None;
+                }
             }
         };
 
@@ -309,6 +313,7 @@ impl Phonemizer {
                 .collect()
         };
 
+        tracing::debug!("Phonemized '{}' -> '{}'", word, phonemized);
         Some(phonemized)
     }
 }
