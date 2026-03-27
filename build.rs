@@ -19,9 +19,6 @@ const DICT: &str =
     "https://raw.githubusercontent.com/Alexir/CMUdict/refs/heads/master/cmudict-0.7b";
 
 fn main() {
-    let stdout = tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("debug"));
-    tracing_subscriber::registry().with(stdout).init();
-
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
     let model_dir = Path::new(&manifest_dir).join("models");
     let web_dir = Path::new(&manifest_dir).join("web");
@@ -120,10 +117,6 @@ fn main() {
         }
 
         let json = format!("[\n  {}\n]", voices.join(",\n  "));
-        let web_dir = Path::new(&manifest_dir).join("web");
-        if !web_dir.exists() {
-            std::fs::create_dir_all(&web_dir).expect("Failed to create web directory");
-        }
         std::fs::write(web_dir.join("voices.json"), json).expect("Failed to write voices.json");
         std::fs::write(model_dir.join("voices.bin"), voices_bin)
             .expect("Failed to write voices.bin");

@@ -1,4 +1,4 @@
-import wasmInit, { loadModel, isModelLoaded, infer } from "../pkg/kittentts_wasm.js";
+import wasmInit, { loadModel, isModelLoaded, infer } from "./pkg/kittentts_wasm.js";
 import { encodeWav } from "./wav.mjs";
 
 const textInput = document.getElementById('text-input');
