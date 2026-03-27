@@ -120,11 +120,11 @@ pub async fn infer_on_cpu_with_params(
         .cloned()
         .collect::<Vec<_>>();
 
-    let text_len = text.len();
+    let tokens_len = tokens.len();
 
     let speed_array = ndarray::Array1::<f32>::from_elem((1usize,), speed);
 
-    let input_ids_val = Tensor::from_array((vec![1, text_len], tokens))
+    let input_ids_val = Tensor::from_array((vec![1, tokens_len], tokens))
         .map_err(|e| JsValue::from(format!("Failed to create input_ids: {e}")))?;
 
     let ref_id = text.len().min(400 - 1);
@@ -185,10 +185,10 @@ pub async fn infer_on_cpu_with_params(
     if len == 0 {
         return Err(JsValue::from("Inference failed: Output size is 0"));
     }
-    tracing::info!(
-        "Inference success! Output size: {}, values: {:?}",
+    tracing::trace!(
+        "Inference success! Output size: {}, first 10 values: {:?}",
         len,
-        &slice[..len]
+        &slice[..std::cmp::min(len, 10)]
     );
 
     // Return to JS
