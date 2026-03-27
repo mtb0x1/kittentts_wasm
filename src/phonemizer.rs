@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
 use cmudict_fast::{Cmudict, Rule};
 use thiserror::Error;

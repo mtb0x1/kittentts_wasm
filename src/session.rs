@@ -4,7 +4,6 @@ use ort::session::builder::SessionBuilder;
 // use std::sync::Arc;
 
 pub const ONNX_MODEL_BYTES: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx");
-pub const CONFIG_BYTES: &[u8] = include_bytes!("../models/config.json");
 pub const VOICES_BIN: &[u8] = include_bytes!("../models/voices.bin");
 
 #[wasm_bindgen::prelude::wasm_bindgen(js_name = "WasmSession")]

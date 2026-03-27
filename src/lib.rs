@@ -6,11 +6,14 @@ use std::sync::{Arc, Mutex};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
 use wasm_bindgen::prelude::*;
+use web_sys::Blob;
 
 mod phonemizer;
 mod session;
+mod wav;
 use phonemizer::{Phonemizer, get_tokens};
 use session::KittenSession;
+use wav::process_and_get_blob;
 
 static GLOBAL_TRACING: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 
@@ -102,11 +105,11 @@ pub async fn infer_on_cpu_with_params(
     text: &str,
     voice_offset: usize,
     speed: f32,
-) -> Result<js_sys::Float32Array, JsValue> {
+) -> Result<Blob, JsValue> {
     let mut global_session = GLOBAL_SESSION
         .lock()
         .map_err(|e| JsValue::from(format!("Lock error: {e}")))?;
-    let mut session_wrapper = global_session
+    let session_wrapper = global_session
         .as_mut()
         .ok_or_else(|| JsValue::from("Model not loaded yet"))?;
     let session: &mut Session = session_wrapper.session_mut();
@@ -191,11 +194,7 @@ pub async fn infer_on_cpu_with_params(
         &slice[..std::cmp::min(len, 10)]
     );
 
-    // Return to JS
-    let js_array = js_sys::Float32Array::new_with_length(len as u32);
-    js_array.copy_from(&slice[..len]);
-
-    Ok(js_array)
+    process_and_get_blob(&slice[..len], len, None)
 }
 
 #[wasm_bindgen(js_name = "infer_webgpu")]

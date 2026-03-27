@@ -11,6 +11,7 @@
 - [x] generate wav file from inference output
 - [x] stream wav back to JavaScript
 - [x] handle audio buffer download/playback
+- [x] move wav generation to wasm (it's currently in js)
 
 
 ## web interface

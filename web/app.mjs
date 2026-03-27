@@ -1,5 +1,4 @@
 import wasmInit, { loadModel, isModelLoaded, infer } from "./pkg/kittentts_wasm.js";
-import { encodeWav } from "./wav.mjs";
 
 const textInput = document.getElementById('text-input');
 const voiceSelect = document.getElementById('voice-select');
@@ -140,16 +139,11 @@ async function main() {
             try {
                 const infer_t0 = performance.now();
                 log("infer", `Calling infer with text: "${text}", voice: "${voiceTechnical}" (offset: ${voiceOffset}), speed: ${speed}`);
-                const result = await infer(text, voiceOffset, speed);
+                const wavBlob = await infer(text, voiceOffset, speed);
 
-                const inferTimeMs = (performance.now() - infer_t0).toFixed(0);
-                log("infer", `Inference returned ${result.length} samples (${inferTimeMs}ms)`);
+                const inferTimeMs = performance.now() - infer_t0;
+                log("infer", `Inference returned ${wavBlob.size} bytes (${inferTimeMs}ms)`);
 
-                // Encode raw PCM f32 samples → WAV blob
-                const wavBlob = encodeWav(result);
-                log("wav", `encoded ${wavBlob.size} bytes`);
-
-                // Revoke previous blob URL to free memory
                 if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
                 currentBlobUrl = URL.createObjectURL(wavBlob);
 
@@ -157,7 +151,7 @@ async function main() {
                 downloadLink.href = currentBlobUrl;
                 downloadLink.download = `kittentts_${Date.now()}.wav`;
                 audioOutput.classList.remove('hidden');
-                updateStatus(`Generation complete! (${inferTimeMs}ms, ${result.length} samples)`, "success");
+                updateStatus(`Generation complete! (${inferTimeMs}ms, TBD samples)`, "success");
             } catch (e) {
                 console.error("[kittentts] inference failed", e);
                 showError(`Inference failed: ${e.toString()}`);

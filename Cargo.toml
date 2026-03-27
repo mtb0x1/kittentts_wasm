@@ -37,6 +37,8 @@ web-sys = { version = "0.3", features = [
     "HtmlElement",
     "AudioContext",
     "console",
+    "Blob",
+    "BlobPropertyBag",
 ] }
 ndarray = "0.15"
 cmudict-fast = "0.8.0"
