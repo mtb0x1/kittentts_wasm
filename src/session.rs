@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, anyhow};
-use ort::session::Session;
 use ort::session::builder::SessionBuilder;
+use ort::session::{self, Session};
 // use std::sync::Arc;
 
 pub const ONNX_MODEL_BYTES: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx");
@@ -25,6 +25,27 @@ impl KittenSession {
         let mut session = SessionBuilder::new()
             .map_err(|e| anyhow!("Failed to create session builder: {e}"))
             .context("while creating session builder")?;
+
+        /* can't use those for wasm
+        let mut session = session
+            .with_parallel_execution(true)
+            .map_err(|e| anyhow!("Failed to set parallel exec for session builder: {e}"))
+            .context("while setting parallel exec")?;
+        let mut session = session
+            .with_intra_threads(4)
+            .map_err(|e| anyhow!("Failed to set parallel exec for session builder: {e}"))
+            .context("while setting with_intra_threads to 4")?;
+        let mut session = session
+            .with_inter_threads(4)
+            .map_err(|e| anyhow!("Failed to set parallel exec for session builder: {e}"))
+            .context("while setting with_inter_threads to 4")?;
+        let mut session = session
+            .with_optimization_level(GraphOptimizationLevel::All)
+            .map_err(|e| anyhow!("Failed to set GraphOptimizationLevel for session builder: {e}"))
+            .context("while GraphOptimizationLevel")?;
+        */
+
+
 
         let session = session
             .commit_from_memory(ONNX_MODEL_BYTES)

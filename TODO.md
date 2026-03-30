@@ -32,10 +32,13 @@
 
 ## performance
 - [ ] inference time is too long :
-    - 99% of time is allocated to : `session.run_async(inputs, &run_options).await`
+    - [x] ort-web 24s : 99% of time is allocated to : `session.run_async(inputs, &run_options).await`
     - [ ] explore alternative backends (https://ort.pyke.io/backends)
+        - [X] tried ort-tract and ort-candle, can't even compile (getrandom dep with 2 version so can't select at runtime so need to be a feature + can't compile due to some trait errors)
+        - [ ] plug wrapper on our own for tract, burn, candle ...
     - [ ] gets worst with time (mem leak ?)
     - [ ] gets worst(10x factor) with input size (10 chars vs 100 chars)
+- [ ] Tokenizer fails to process words like (it's, end of sentence., end-of-things ... etc)
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] explore using WebNN (browser API for ml inference) for better perfs

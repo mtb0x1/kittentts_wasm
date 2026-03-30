@@ -1,9 +1,11 @@
-import wasmInit, { loadModel, isModelLoaded, infer } from "./pkg/kittentts_wasm.js";
+import wasmInit, { loadModel, loadModelForceReload, isModelLoaded, infer } from "./pkg/kittentts_wasm.js";
 
 const textInput = document.getElementById('text-input');
 const voiceSelect = document.getElementById('voice-select');
 const speedSlider = document.getElementById('speed-slider');
 const speedValue = document.getElementById('speed-value');
+const featureSelect = document.getElementById('feature-select');
+const backendSelect = document.getElementById('backend-select');
 const webgpuCheckbox = document.getElementById('webgpu-checkbox');
 const generateBtn = document.getElementById('generate-btn');
 const btnText = generateBtn.querySelector('.btn-text');
@@ -57,11 +59,13 @@ async function main() {
         await wasmInit();
         log("wasm", `instantiated (+${(performance.now() - t0).toFixed(0)} ms)`);
 
+        const selectedFeature = featureSelect ? featureSelect.value : 'cpu';
+        const selectedBackend = backendSelect ? backendSelect.value : 'ort-web';
         updateStatus("Loading ONNX model...", 'processing');
-        log("model", "loadModel() starting (embedded ONNX in wasm)");
+        log("model", `loadModel() starting (embedded ONNX in wasm) with feature ${selectedFeature}, backend ${selectedBackend}`);
         const t1 = performance.now();
 
-        await loadModel();
+        await loadModel(selectedFeature, selectedBackend);
 
         const loadTimeMs = (performance.now() - t1).toFixed(0);
 
@@ -71,6 +75,43 @@ async function main() {
 
         // Populate voices
         let currentVoices = [];
+
+async function reloadModel(feature, backend) {
+    hideError();
+    audioOutput.classList.add('hidden');
+
+    // Set UI to processing
+    textInput.disabled = true;
+    voiceSelect.disabled = true;
+    speedSlider.disabled = true;
+    featureSelect.disabled = true;
+    backendSelect.disabled = true;
+    generateBtn.disabled = true;
+    btnText.textContent = "Reloading Model...";
+    updateStatus("Reloading model with new settings...", "processing");
+
+    try {
+        const reload_t0 = performance.now();
+        log("model", `Reloading model with feature ${feature}, backend ${backend}`);
+        await loadModelForceReload(feature, backend, true);
+        const reloadTimeMs = (performance.now() - reload_t0).toFixed(0);
+        log("model", `Model reloaded in ${reloadTimeMs}ms`);
+        updateStatus(`Model reloaded (${reloadTimeMs}ms)`, "success");
+    } catch (e) {
+        console.error("[kittentts] reload failed", e);
+        showError(`Failed to reload model with feature ${feature}, backend ${backend}: ${e.toString()}`);
+        updateStatus("Failed to reload model", "error");
+    } finally {
+        // Restore UI
+        textInput.disabled = false;
+        voiceSelect.disabled = false;
+        speedSlider.disabled = false;
+        featureSelect.disabled = false;
+        backendSelect.disabled = false;
+        generateBtn.disabled = false;
+        btnText.textContent = "Generate Audio";
+    }
+}
         try {
             const resp = await fetch('voices.json');
             if (resp.ok) {
@@ -90,26 +131,52 @@ async function main() {
             console.error("[kittentts] failed to fetch voices", e);
         }
 
-        // Update speed label on input
-        speedSlider.addEventListener('input', (e) => {
-            speedValue.textContent = parseFloat(e.target.value).toFixed(1);
-        });
-
         // Ready
         updateStatus(`Ready (Loaded in ${loadTimeMs}ms)`, "success");
         textInput.disabled = false;
         voiceSelect.disabled = false;
         speedSlider.disabled = false;
-        webgpuCheckbox.disabled = false;
+        featureSelect.disabled = false;
+        backendSelect.disabled = false;
         generateBtn.disabled = false;
         btnText.textContent = "Generate Audio";
+
+        // Update speed label on input
+        speedSlider.addEventListener('input', (e) => {
+            speedValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        // Feature change handler
+        featureSelect.addEventListener('change', async () => {
+            const newFeature = featureSelect.value;
+            const currentBackend = backendSelect.value;
+            log("feature", `Feature changed to ${newFeature}`);
+
+            // Only reload if model is already loaded
+            if (isModelLoaded()) {
+                await reloadModel(newFeature, currentBackend);
+            }
+        });
+
+        // Backend change handler
+        backendSelect.addEventListener('change', async () => {
+            const currentFeature = featureSelect.value;
+            const newBackend = backendSelect.value;
+            log("backend", `Backend changed to ${newBackend}`);
+
+            // Only reload if model is already loaded
+            if (isModelLoaded()) {
+                await reloadModel(currentFeature, newBackend);
+            }
+        });
 
         // Generate click handler
         generateBtn.addEventListener('click', async () => {
             const text = textInput.value.trim();
             const voiceTechnical = voiceSelect.value;
             const speed = parseFloat(speedSlider.value);
-            const useWebGPU = webgpuCheckbox.checked;
+            const chosenFeature = featureSelect ? featureSelect.value : 'cpu';
+            const chosenBackend = backendSelect ? backendSelect.value : 'ort-web';
 
             if (!text) {
                 showError("Please enter some text to synthesize.");
@@ -130,6 +197,8 @@ async function main() {
             textInput.disabled = true;
             voiceSelect.disabled = true;
             speedSlider.disabled = true;
+            featureSelect.disabled = true;
+            backendSelect.disabled = true;
             webgpuCheckbox.disabled = true;
             generateBtn.disabled = true;
             btnText.textContent = "Synthesizing...";
@@ -138,7 +207,7 @@ async function main() {
 
             try {
                 const infer_t0 = performance.now();
-                log("infer", `Calling infer with text: "${text}", voice: "${voiceTechnical}" (offset: ${voiceOffset}), speed: ${speed}`);
+                log("infer", `Calling infer with text: "${text}", voice: "${voiceTechnical}" (offset: ${voiceOffset}), speed: ${speed}, feature: ${chosenFeature}, backend: ${chosenBackend}`);
                 const wavBlob = await infer(text, voiceOffset, speed);
 
                 const inferTimeMs = performance.now() - infer_t0;
@@ -160,7 +229,8 @@ async function main() {
                 textInput.disabled = false;
                 voiceSelect.disabled = false;
                 speedSlider.disabled = false;
-                webgpuCheckbox.disabled = false;
+                featureSelect.disabled = false;
+                backendSelect.disabled = false;
                 generateBtn.disabled = false;
                 btnText.textContent = "Generate Audio";
                 btnLoader.classList.add('hidden');

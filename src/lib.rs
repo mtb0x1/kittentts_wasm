@@ -71,15 +71,56 @@ pub fn init() {
 }
 
 #[wasm_bindgen(js_name = "loadModel")]
-pub async fn load_model() -> Result<(), JsValue> {
-    if is_model_loaded() {
+pub async fn load_model(feature: Option<String>, backend: Option<String>) -> Result<(), JsValue> {
+    load_model_with_force_reload(feature, backend, false).await
+}
+
+#[wasm_bindgen(js_name = "loadModelForceReload")]
+pub async fn load_model_with_force_reload(feature: Option<String>, backend: Option<String>, force_reload: bool) -> Result<(), JsValue> {
+    if is_model_loaded() && !force_reload {
         tracing::info!("Model already loaded");
         return Ok(());
     }
-    tracing::info!("Initializing ORT Web API");
-    let api = ort_web::api(ort_web::FEATURE_NONE)
-        .await
-        .map_err(|e| JsValue::from(format!("Failed to initialize ORT Web API: {}", e)))?;
+
+    // If forcing reload, clear the existing session
+    if force_reload {
+        tracing::info!("Force reloading model, clearing existing session");
+        let mut global = GLOBAL_SESSION.lock().unwrap();
+        *global = None;
+    }
+
+    let feature_str = feature.as_deref().unwrap_or("cpu").to_lowercase();
+    let backend_str = backend.as_deref().unwrap_or("ort-web").to_lowercase();
+
+    tracing::info!("Loading model with feature: {}, backend: {}", feature_str, backend_str);
+
+    if backend_str != "ort-web" {
+        tracing::warn!("Backend {} not supported yet, using ort-web", backend_str);
+    }
+
+    let (api_features, select_feature) = match feature_str.as_str() {
+        "webgl" => (ort_web::FEATURE_WEBGL, "WEBGL"),
+        "webgpu" => (ort_web::FEATURE_WEBGPU, "WEBGPU"),
+        "webnn" => (ort_web::FEATURE_WEBNN, "WEBNN"),
+        "cpu" | "none" | "ort-web" | _ => (ort_web::FEATURE_NONE, "CPU"),
+    };
+
+    tracing::info!("Initializing ORT Web API with feature {}", select_feature);
+    let api = match ort_web::api(api_features).await {
+        Ok(api) => api,
+        Err(e) => {
+            tracing::warn!("Failed to initialize ORT Web API for {}: {}", select_feature, e);
+            if api_features != ort_web::FEATURE_NONE {
+                tracing::info!("Falling back to CPU feature");
+                ort_web::api(ort_web::FEATURE_NONE)
+                    .await
+                    .map_err(|e| JsValue::from(format!("Failed to initialize ORT Web API (CPU fallback): {}", e)))?
+            } else {
+                return Err(JsValue::from(format!("Failed to initialize ORT Web API: {}", e)));
+            }
+        }
+    };
+
     ort::set_api(api);
 
     tracing::info!("Loading embedded KittenTTS model");

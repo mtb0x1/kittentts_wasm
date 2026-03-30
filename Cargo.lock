@@ -1244,7 +1244,8 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 [[package]]
 name = "ort"
 version = "2.0.0-rc.12"
-source = "git+https://github.com/pykeio/ort#076880e75628cbb5c7332f51c135c865c41044e6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7de3af33d24a745ffb8fab904b13478438d1cd52868e6f17735ef6e1f8bf133"
 dependencies = [
  "ort-sys",
  "smallvec",
@@ -1253,12 +1254,14 @@ dependencies = [
 [[package]]
 name = "ort-sys"
 version = "2.0.0-rc.12"
-source = "git+https://github.com/pykeio/ort#076880e75628cbb5c7332f51c135c865c41044e6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7b497d21a8b6fbb4b5a544f8fadb77e801a09ae0add9e411d31c6f89e3c1e90"
 
 [[package]]
 name = "ort-web"
 version = "0.2.1+1.24"
-source = "git+https://github.com/pykeio/ort#076880e75628cbb5c7332f51c135c865c41044e6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbbfb28fde2a1443c2905a2a523a722f78b0cd7ffa677bebcd3d2d25bd959862"
 dependencies = [
  "js-sys",
  "ort",

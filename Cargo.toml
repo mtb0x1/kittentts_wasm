@@ -14,8 +14,14 @@ anyhow = "1"
 console_error_panic_hook = "0.1"
 js-sys = "0.3"
 once_cell = "1"
-ort = { git = "https://github.com/pykeio/ort", default-features = false }
-ort-web = { git = "https://github.com/pykeio/ort", default-features = false }
+#ort = { git = "https://github.com/pykeio/ort", default-features = false , features = ["alternative-backend"] }
+ort = { version = "2.0.0-rc.12", default-features = false , features = ["alternative-backend"] }
+#ort-web = { git = "https://github.com/pykeio/ort", default-features = false }
+ort-web = { version = "0.2.1", default-features = false }
+#ort-candle =  { version = "0.3.0", default-features = false }
+#ort-tract = { version = "0.3.0", default-features = false }
+#Needed by ort-tract and candle
+#getrandom = { version = "0.3.4", features = ["wasm_js"] }
 rayon = "1"
 serde = "1"
 serde_json = "1"
@@ -45,6 +51,9 @@ web-sys = { version = "0.3", features = [
 ] }
 ndarray = "0.15"
 cmudict-fast = "0.8.0"
+
+
+
 
 [build-dependencies]
 hf-hub = "0.5"
