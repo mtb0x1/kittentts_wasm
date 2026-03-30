@@ -147,10 +147,7 @@ pub fn is_model_loaded() -> bool {
 }
 
 pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
-    text.split_whitespace()
-        .flat_map(|word| phonemizer.phonemize(word))
-        .collect::<Vec<String>>()
-        .join(" ")
+    phonemizer.phonemize_text(text)
 }
 
 #[wasm_bindgen(js_name = "infer")]

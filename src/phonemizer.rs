@@ -281,6 +281,15 @@ impl Phonemizer {
         Ok(Self { dict, ipa })
     }
 
+    pub fn phonemize_text(&self, text: &str) -> String {
+        let expanded = expand_contractions(text);
+        tokenize_text(&expanded)
+            .into_iter()
+            .flat_map(|token| self.phonemize(&token).or_else(|| Some(token)))
+            .collect::<Vec<String>>()
+            .join(" ")
+    }
+
     pub fn phonemize(&self, word: &str) -> Option<String> {
         let lower_case = word.to_lowercase();
         let upper_case = word.to_uppercase();
@@ -316,4 +325,32 @@ impl Phonemizer {
         tracing::debug!("Phonemized '{}' -> '{}'", word, phonemized);
         Some(phonemized)
     }
+}
+
+fn expand_contractions(text: &str) -> String {
+    text.chars()
+        .map(|c| if ['\'', '"', '\\', '/', '-'].contains(&c) { ' ' } else { c })
+        .collect()
+}
+
+fn tokenize_text(text: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    for c in text.chars() {
+        if c.is_alphanumeric() {
+            current.push(c);
+        } else {
+            if !current.is_empty() {
+                tokens.push(current);
+                current = String::new();
+            }
+            if !c.is_whitespace() {
+                tokens.push(c.to_string());
+            }
+        }
+    }
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+    tokens
 }

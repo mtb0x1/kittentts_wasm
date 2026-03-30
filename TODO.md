@@ -38,7 +38,7 @@
         - [ ] plug wrapper on our own for tract, burn, candle ...
     - [ ] gets worst with time (mem leak ?)
     - [ ] gets worst(10x factor) with input size (10 chars vs 100 chars)
-- [ ] Tokenizer fails to process words like (it's, end of sentence., end-of-things ... etc)
+- [x] Tokenizer fails to process words like (it's, end of sentence., end-of-things ... etc)
 - [ ] optimize hot paths
 - [ ] explore using WebGPU for hardware acceleration
 - [ ] explore using WebNN (browser API for ml inference) for better perfs
