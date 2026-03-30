@@ -15,6 +15,7 @@ use web_sys::Blob;
 
 mod phonemizer;
 mod session;
+mod voices;
 mod wav;
 use phonemizer::{Phonemizer, get_tokens};
 use session::KittenSession;
@@ -153,13 +154,13 @@ pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
 #[wasm_bindgen(js_name = "infer")]
 pub async fn infer_on_cpu_with_params(
     text: &str,
-    voice_offset: usize,
+    voice: &str,
     speed: f32,
 ) -> Result<Blob, JsValue> {
     tracing::info!(
-        "Inference start: text_len={}, voice_offset={}, speed={}",
+        "Inference start: text_len={}, voice={}, speed={}",
         text.len(),
-        voice_offset,
+        voice,
         speed
     );
 
@@ -189,22 +190,14 @@ pub async fn infer_on_cpu_with_params(
         .map_err(|e| JsValue::from(format!("Failed to create input_ids: {e}")))?;
 
     let ref_id = text.len().min(400 - 1);
-    let f32_offset = voice_offset + ref_id * 256;
-    let byte_offset = f32_offset * 4;
 
-    let mut style_vec = Vec::with_capacity(256);
-    let bytes_slice = session::VOICES_BIN;
-    if byte_offset + 256 * 4 > bytes_slice.len() {
-        return Err(JsValue::from("VOICES_BIN out of bounds"));
-    }
-    for i in 0..256 {
-        let start = byte_offset + i * 4;
-        let mut b = [0u8; 4];
-        b.copy_from_slice(&bytes_slice[start..start + 4]);
-        style_vec.push(f32::from_le_bytes(b));
-    }
-
-    let style_val = Tensor::from_array((vec![1, 256], style_vec))
+    let voice_raw = voices::VOICE_MAP.get(voice).ok_or_else(|| JsValue::from("Voice not found"))?;
+    let voice_f32: Vec<f32> = voice_raw.chunks_exact(4).map(|b| f32::from_le_bytes(b.try_into().unwrap())).collect();
+    let voice_array = ndarray::Array2::from_shape_vec((400, 256), voice_f32)
+        .map_err(|e| JsValue::from(format!("Failed to create voice array: {e}")))?;
+    let style_vec = voice_array.row(ref_id).to_owned();
+    let style_input = style_vec.insert_axis(ndarray::Axis(0));
+    let style_val = Tensor::from_array((vec![1, 256], style_input.into_raw_vec()))
         .map_err(|e| JsValue::from(format!("Failed to create style: {e}")))?;
 
     let speed_vec = speed_array.into_raw_vec();

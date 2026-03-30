@@ -85,7 +85,7 @@ fn main() {
         let mut archive = zip::ZipArchive::new(file).expect("Failed to read zip archive");
         let mut voices = Vec::new();
 
-        let mut voices_bin = Vec::new();
+        let mut voices_data = Vec::new();
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).unwrap();
@@ -104,8 +104,11 @@ fn main() {
                 let data_start = 10 + header_len;
                 let raw_data = &content[data_start..];
 
-                let current_offset = voices_bin.len() / 4; // offset in f32 elements
-                voices_bin.extend_from_slice(raw_data);
+                let voice_bin_path = model_dir.join(format!("{}.bin", technical));
+                std::fs::write(&voice_bin_path, raw_data).expect("Failed to write voice bin");
+
+                let current_offset = voices_data.len() * 102400; // offset in f32 elements, 400*256=102400 per voice
+                voices_data.push((technical.clone(), raw_data.to_vec()));
 
                 voices.push(format!(
                     r#"{{"technical": "{}", "colloquial": "{}", "offset": {}}}"#,
@@ -114,10 +117,26 @@ fn main() {
             }
         }
 
+        // Generate voices.rs
+        let mut voices_rs = String::new();
+        voices_rs.push_str("use std::collections::HashMap;\nuse once_cell::sync::Lazy;\n\n");
+
+        for (technical, _) in &voices_data {
+            let const_name = technical.replace("-", "_").to_uppercase();
+            voices_rs.push_str(&format!("const VOICE_{}: &[u8] = include_bytes!(\"../models/{}.bin\");\n", const_name, technical));
+        }
+
+        voices_rs.push_str("\npub static VOICE_MAP: Lazy<HashMap<&str, &[u8]>> = Lazy::new(|| {\n    let mut map = HashMap::new();\n");
+        for (technical, _) in &voices_data {
+            let const_name = technical.replace("-", "_").to_uppercase();
+            voices_rs.push_str(&format!("    map.insert(\"{}\", VOICE_{});\n", technical, const_name));
+        }
+        voices_rs.push_str("    map\n});\n");
+
+        std::fs::write(Path::new(&manifest_dir).join("src").join("voices.rs"), voices_rs).expect("Failed to write voices.rs");
+
         let json = format!("[\n  {}\n]", voices.join(",\n  "));
         std::fs::write(web_dir.join("voices.json"), json).expect("Failed to write voices.json");
-        std::fs::write(model_dir.join("voices.bin"), voices_bin)
-            .expect("Failed to write voices.bin");
         //use reqwest to download DICT and save it under web/cmu.dict
         let dict_path = web_dir.join("cmu.dict");
         if !dict_path.exists() {

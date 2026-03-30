@@ -2,6 +2,7 @@
 /pkg
 /node_modules
 web/voices.json
+src/voices.rs
 web/pkg
 dist
 *.wav

@@ -207,8 +207,8 @@ async function reloadModel(feature, backend) {
 
             try {
                 const infer_t0 = performance.now();
-                log("infer", `Calling infer with text: "${text}", voice: "${voiceTechnical}" (offset: ${voiceOffset}), speed: ${speed}, feature: ${chosenFeature}, backend: ${chosenBackend}`);
-                const wavBlob = await infer(text, voiceOffset, speed);
+                log("infer", `Calling infer with text: "${text}", voice: "${voiceTechnical}", speed: ${speed}, feature: ${chosenFeature}, backend: ${chosenBackend}`);
+                const wavBlob = await infer(text, voiceTechnical, speed);
 
                 const inferTimeMs = performance.now() - infer_t0;
                 log("infer", `Inference returned ${wavBlob.size} bytes (${inferTimeMs}ms)`);
