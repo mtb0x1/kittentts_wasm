@@ -14,7 +14,7 @@
 - [x] move wav generation to wasm (it's currently in js)
 - [ ] sound low quality : review style process ? samples?
     - [x] kinda better by avoiding runtime sheninags on voice offset
-    - [ ] compare to kitten tts python outputed wav file for quality (hint: some gaps still)
+    - [x] compare to kitten tts python outputed wav file for quality (hint: some gaps still)
 
 
 ## web interface
