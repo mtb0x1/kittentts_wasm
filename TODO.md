@@ -23,6 +23,9 @@
 - [x] display inference status/progress
 - [x] play/download audio output
 - [x] error handling and user feedback
+- [ ] rework options selection on ui
+    - [x] correct backends names and prefill features
+    - [ ] TBC
 
 ## build & deploy
 - [ ] optimize wasm bundle size
@@ -49,3 +52,4 @@
 - [ ] test on different hardware
 - [x] voices names need to be aligned (todo in build.rs)
 - [ ] clean cargo dep : remove useless crates.
+- [ ] ci wasm-pack takes forever to install

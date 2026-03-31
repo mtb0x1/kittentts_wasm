@@ -17,6 +17,39 @@ const audioOutput = document.getElementById('audio-output');
 const player = document.getElementById('player');
 const downloadLink = document.getElementById('download-link');
 
+const FEATURES_BY_BACKEND = {
+    'ort-web': [
+        { value: 'cpu', label: 'CPU (default)' },
+        { value: 'webgl', label: 'WebGL' },
+        { value: 'webgpu', label: 'WebGPU' },
+        { value: 'webnn', label: 'WebNN' },
+    ],
+    'tract': [
+        { value: 'cpu', label: 'CPU (default)' },
+        { value: 'wasm-simd', label: 'WASM SIMD (TBD)' },
+    ],
+    'burn': [
+        { value: 'cpu', label: 'CPU (default)' },
+        { value: 'cuda', label: 'CUDA (TBD)' },
+        { value: 'wgpu', label: 'WebGPU (TBD)' },
+    ],
+    'candle': [
+        { value: 'cpu', label: 'CPU (default)' },
+        { value: 'cuda', label: 'CUDA (TBD)' },
+    ],
+};
+
+function updateFeaturesForBackend(backend) {
+    const features = FEATURES_BY_BACKEND[backend] || FEATURES_BY_BACKEND['ort-web'];
+    featureSelect.innerHTML = '';
+    features.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.value;
+        opt.textContent = f.label;
+        featureSelect.appendChild(opt);
+    });
+}
+
 let currentBlobUrl = null;
 
 const log = (phase, detail) => {
@@ -41,6 +74,41 @@ function showError(errMessage) {
 function hideError() {
     errorBanner.classList.add('hidden');
     errorBanner.textContent = '';
+}
+
+async function reloadModel(feature, backend) {
+    hideError();
+    audioOutput.classList.add('hidden');
+
+    textInput.disabled = true;
+    voiceSelect.disabled = true;
+    speedSlider.disabled = true;
+    featureSelect.disabled = true;
+    backendSelect.disabled = true;
+    generateBtn.disabled = true;
+    btnText.textContent = "Reloading Model...";
+    updateStatus("Reloading model with new settings...", "processing");
+
+    try {
+        const reload_t0 = performance.now();
+        log("model", `Reloading model with feature ${feature}, backend ${backend}`);
+        await loadModelForceReload(feature, backend, true);
+        const reloadTimeMs = (performance.now() - reload_t0).toFixed(0);
+        log("model", `Model reloaded in ${reloadTimeMs}ms`);
+        updateStatus(`Model reloaded (${reloadTimeMs}ms)`, "success");
+    } catch (e) {
+        console.error("[kittentts] reload failed", e);
+        showError(`Failed to reload model with feature ${feature}, backend ${backend}: ${e.toString()}`);
+        updateStatus("Failed to reload model", "error");
+    } finally {
+        textInput.disabled = false;
+        voiceSelect.disabled = false;
+        speedSlider.disabled = false;
+        featureSelect.disabled = false;
+        backendSelect.disabled = false;
+        generateBtn.disabled = false;
+        btnText.textContent = "Generate Audio";
+    }
 }
 
 async function main() {
@@ -71,47 +139,10 @@ async function main() {
 
         log("model", `loadModel() finished (+${loadTimeMs} ms)`);
         log("state", `isModelLoaded() = ${isModelLoaded()}`);
-        log("done", `total ${(performance.now() - t0).toFixed(0)} ms`);
+        log("done", `total ${(performance.now() - t0).toFixed(0)} ms)`);
 
-        // Populate voices
         let currentVoices = [];
 
-async function reloadModel(feature, backend) {
-    hideError();
-    audioOutput.classList.add('hidden');
-
-    // Set UI to processing
-    textInput.disabled = true;
-    voiceSelect.disabled = true;
-    speedSlider.disabled = true;
-    featureSelect.disabled = true;
-    backendSelect.disabled = true;
-    generateBtn.disabled = true;
-    btnText.textContent = "Reloading Model...";
-    updateStatus("Reloading model with new settings...", "processing");
-
-    try {
-        const reload_t0 = performance.now();
-        log("model", `Reloading model with feature ${feature}, backend ${backend}`);
-        await loadModelForceReload(feature, backend, true);
-        const reloadTimeMs = (performance.now() - reload_t0).toFixed(0);
-        log("model", `Model reloaded in ${reloadTimeMs}ms`);
-        updateStatus(`Model reloaded (${reloadTimeMs}ms)`, "success");
-    } catch (e) {
-        console.error("[kittentts] reload failed", e);
-        showError(`Failed to reload model with feature ${feature}, backend ${backend}: ${e.toString()}`);
-        updateStatus("Failed to reload model", "error");
-    } finally {
-        // Restore UI
-        textInput.disabled = false;
-        voiceSelect.disabled = false;
-        speedSlider.disabled = false;
-        featureSelect.disabled = false;
-        backendSelect.disabled = false;
-        generateBtn.disabled = false;
-        btnText.textContent = "Generate Audio";
-    }
-}
         try {
             const resp = await fetch('voices.json');
             if (resp.ok) {
@@ -131,7 +162,6 @@ async function reloadModel(feature, backend) {
             console.error("[kittentts] failed to fetch voices", e);
         }
 
-        // Ready
         updateStatus(`Ready (Loaded in ${loadTimeMs}ms)`, "success");
         textInput.disabled = false;
         voiceSelect.disabled = false;
@@ -141,36 +171,31 @@ async function reloadModel(feature, backend) {
         generateBtn.disabled = false;
         btnText.textContent = "Generate Audio";
 
-        // Update speed label on input
         speedSlider.addEventListener('input', (e) => {
             speedValue.textContent = parseFloat(e.target.value).toFixed(1);
         });
 
-        // Feature change handler
+        backendSelect.addEventListener('change', async () => {
+            const newBackend = backendSelect.value;
+            log("backend", `Backend changed to ${newBackend}`);
+            updateFeaturesForBackend(newBackend);
+
+            if (isModelLoaded()) {
+                const currentFeature = featureSelect.value;
+                await reloadModel(currentFeature, newBackend);
+            }
+        });
+
         featureSelect.addEventListener('change', async () => {
             const newFeature = featureSelect.value;
             const currentBackend = backendSelect.value;
             log("feature", `Feature changed to ${newFeature}`);
 
-            // Only reload if model is already loaded
             if (isModelLoaded()) {
                 await reloadModel(newFeature, currentBackend);
             }
         });
 
-        // Backend change handler
-        backendSelect.addEventListener('change', async () => {
-            const currentFeature = featureSelect.value;
-            const newBackend = backendSelect.value;
-            log("backend", `Backend changed to ${newBackend}`);
-
-            // Only reload if model is already loaded
-            if (isModelLoaded()) {
-                await reloadModel(currentFeature, newBackend);
-            }
-        });
-
-        // Generate click handler
         generateBtn.addEventListener('click', async () => {
             const text = textInput.value.trim();
             const voiceTechnical = voiceSelect.value;
@@ -193,7 +218,6 @@ async function reloadModel(feature, backend) {
             hideError();
             audioOutput.classList.add('hidden');
 
-            // Set UI to processing
             textInput.disabled = true;
             voiceSelect.disabled = true;
             speedSlider.disabled = true;
@@ -225,7 +249,6 @@ async function reloadModel(feature, backend) {
                 console.error("[kittentts] inference failed", e);
                 showError(`Inference failed: ${e.toString()}`);
             } finally {
-                // Restore UI
                 textInput.disabled = false;
                 voiceSelect.disabled = false;
                 speedSlider.disabled = false;
@@ -235,7 +258,6 @@ async function reloadModel(feature, backend) {
                 btnText.textContent = "Generate Audio";
                 btnLoader.classList.add('hidden');
 
-                // If status wasn't set to "error" by catch, it will stay processing/success
                 if (!errorBanner.classList.contains('hidden')) {
                     updateStatus("Ready (Failed last run)", "error");
                 }

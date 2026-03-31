@@ -33,17 +33,13 @@
 
             <div class="settings-grid">
                 <div class="input-group">
-                    <label for="voice-select">Voice</label>
-                    <select id="voice-select" disabled>
-                        <option value="default">Default Voice</option>
-                        <option value="en-us-1">English (US) 1</option>
-                        <option value="en-gb-1">English (GB) 1</option>
+                    <label for="backend-select">Backend</label>
+                    <select id="backend-select" disabled>
+                        <option value="ort-web">ort-web (default)</option>
+                        <option value="tract">tract (TBD)</option>
+                        <option value="burn">burn (TBD)</option>
+                        <option value="candle">candle (TBD)</option>
                     </select>
-                </div>
-
-                <div class="input-group">
-                    <label for="speed-slider">Speed (<span id="speed-value">1.0</span>x)</label>
-                    <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" disabled>
                 </div>
 
                 <div class="input-group">
@@ -57,12 +53,17 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="backend-select">Backend</label>
-                    <select id="backend-select" disabled>
-                        <option value="ort-web">ort-web (default)</option>
-                        <option value="ort-candle">ort-candle</option>
-                        <option value="ort-tract">ort-tract</option>
+                    <label for="voice-select">Voice</label>
+                    <select id="voice-select" disabled>
+                        <option value="default">Default Voice</option>
+                        <option value="en-us-1">English (US) 1</option>
+                        <option value="en-gb-1">English (GB) 1</option>
                     </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="speed-slider">Speed (<span id="speed-value">1.0</span>x)</label>
+                    <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" disabled>
                 </div>
             </div>
 
