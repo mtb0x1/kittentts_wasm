@@ -12,6 +12,7 @@ pub struct KittenSession {
 }
 
 impl KittenSession {
+    #[cfg(target_arch = "wasm32")]
     pub async fn load_async() -> Result<Self> {
         tracing::debug!("Entering KittenSession::load_async");
         tracing::info!("Loading embedded KittenTTS model");
@@ -43,8 +44,6 @@ impl KittenSession {
             .map_err(|e| anyhow!("Failed to set GraphOptimizationLevel for session builder: {e}"))
             .context("while GraphOptimizationLevel")?;
         */
-
-
 
         let session = session
             .commit_from_memory(ONNX_MODEL_BYTES)

@@ -1,5 +1,7 @@
 build: build-release
 
+test: 
+    cargo test --target x86_64-unknown-linux-gnu -- --nocapture
 clean:
     cargo clean
 

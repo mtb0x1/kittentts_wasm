@@ -123,17 +123,27 @@ fn main() {
 
         for (technical, _) in &voices_data {
             let const_name = technical.replace("-", "_").to_uppercase();
-            voices_rs.push_str(&format!("const VOICE_{}: &[u8] = include_bytes!(\"../models/{}.bin\");\n", const_name, technical));
+            voices_rs.push_str(&format!(
+                "const VOICE_{}: &[u8] = include_bytes!(\"../models/{}.bin\");\n",
+                const_name, technical
+            ));
         }
 
         voices_rs.push_str("\npub static VOICE_MAP: Lazy<HashMap<&str, &[u8]>> = Lazy::new(|| {\n    let mut map = HashMap::new();\n");
         for (technical, _) in &voices_data {
             let const_name = technical.replace("-", "_").to_uppercase();
-            voices_rs.push_str(&format!("    map.insert(\"{}\", VOICE_{});\n", technical, const_name));
+            voices_rs.push_str(&format!(
+                "    map.insert(\"{}\", VOICE_{});\n",
+                technical, const_name
+            ));
         }
         voices_rs.push_str("    map\n});\n");
 
-        std::fs::write(Path::new(&manifest_dir).join("src").join("voices.rs"), voices_rs).expect("Failed to write voices.rs");
+        std::fs::write(
+            Path::new(&manifest_dir).join("src").join("voices.rs"),
+            voices_rs,
+        )
+        .expect("Failed to write voices.rs");
 
         let json = format!("[\n  {}\n]", voices.join(",\n  "));
         std::fs::write(web_dir.join("voices.json"), json).expect("Failed to write voices.json");

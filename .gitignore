@@ -10,3 +10,4 @@ dist
 .vscode
 configs
 models/
+KittenTTS_python

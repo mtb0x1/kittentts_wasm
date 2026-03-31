@@ -13,11 +13,11 @@ use tracing_subscriber::prelude::*;
 use wasm_bindgen::prelude::*;
 use web_sys::Blob;
 
-mod phonemizer;
+pub mod phonemizer;
 mod session;
 mod voices;
 mod wav;
-use phonemizer::{Phonemizer, get_tokens};
+use phonemizer::phonemizer::{Phonemizer, get_tokens};
 use session::KittenSession;
 use wav::process_and_get_blob;
 
@@ -26,6 +26,7 @@ static GLOBAL_TRACING: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 static GLOBAL_SESSION: Lazy<Arc<Mutex<Option<KittenSession>>>> =
     Lazy::new(|| Arc::new(Mutex::new(None)));
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub fn init() {
     console_error_panic_hook::set_once();
@@ -71,13 +72,19 @@ pub fn init() {
     tracing::info!("KittenTTS WASM initialized");
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = "loadModel")]
 pub async fn load_model(feature: Option<String>, backend: Option<String>) -> Result<(), JsValue> {
     load_model_with_force_reload(feature, backend, false).await
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = "loadModelForceReload")]
-pub async fn load_model_with_force_reload(feature: Option<String>, backend: Option<String>, force_reload: bool) -> Result<(), JsValue> {
+pub async fn load_model_with_force_reload(
+    feature: Option<String>,
+    backend: Option<String>,
+    force_reload: bool,
+) -> Result<(), JsValue> {
     if is_model_loaded() && !force_reload {
         tracing::info!("Model already loaded");
         return Ok(());
@@ -93,7 +100,11 @@ pub async fn load_model_with_force_reload(feature: Option<String>, backend: Opti
     let feature_str = feature.as_deref().unwrap_or("cpu").to_lowercase();
     let backend_str = backend.as_deref().unwrap_or("ort-web").to_lowercase();
 
-    tracing::info!("Loading model with feature: {}, backend: {}", feature_str, backend_str);
+    tracing::info!(
+        "Loading model with feature: {}, backend: {}",
+        feature_str,
+        backend_str
+    );
 
     if backend_str != "ort-web" {
         tracing::warn!("Backend {} not supported yet, using ort-web", backend_str);
@@ -110,14 +121,24 @@ pub async fn load_model_with_force_reload(feature: Option<String>, backend: Opti
     let api = match ort_web::api(api_features).await {
         Ok(api) => api,
         Err(e) => {
-            tracing::warn!("Failed to initialize ORT Web API for {}: {}", select_feature, e);
+            tracing::warn!(
+                "Failed to initialize ORT Web API for {}: {}",
+                select_feature,
+                e
+            );
             if api_features != ort_web::FEATURE_NONE {
                 tracing::info!("Falling back to CPU feature");
-                ort_web::api(ort_web::FEATURE_NONE)
-                    .await
-                    .map_err(|e| JsValue::from(format!("Failed to initialize ORT Web API (CPU fallback): {}", e)))?
+                ort_web::api(ort_web::FEATURE_NONE).await.map_err(|e| {
+                    JsValue::from(format!(
+                        "Failed to initialize ORT Web API (CPU fallback): {}",
+                        e
+                    ))
+                })?
             } else {
-                return Err(JsValue::from(format!("Failed to initialize ORT Web API: {}", e)));
+                return Err(JsValue::from(format!(
+                    "Failed to initialize ORT Web API: {}",
+                    e
+                )));
             }
         }
     };
@@ -140,6 +161,7 @@ pub async fn load_model_with_force_reload(feature: Option<String>, backend: Opti
 }
 
 // Check if the model is currently loaded in memory.
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = "isModelLoaded")]
 pub fn is_model_loaded() -> bool {
     let loaded = GLOBAL_SESSION.lock().map(|s| s.is_some()).unwrap_or(false);
@@ -151,6 +173,7 @@ pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
     phonemizer.phonemize_text(text)
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = "infer")]
 pub async fn infer_on_cpu_with_params(
     text: &str,
@@ -191,8 +214,13 @@ pub async fn infer_on_cpu_with_params(
 
     let ref_id = text.len().min(400 - 1);
 
-    let voice_raw = voices::VOICE_MAP.get(voice).ok_or_else(|| JsValue::from("Voice not found"))?;
-    let voice_f32: Vec<f32> = voice_raw.chunks_exact(4).map(|b| f32::from_le_bytes(b.try_into().unwrap())).collect();
+    let voice_raw = voices::VOICE_MAP
+        .get(voice)
+        .ok_or_else(|| JsValue::from("Voice not found"))?;
+    let voice_f32: Vec<f32> = voice_raw
+        .chunks_exact(4)
+        .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+        .collect();
     let voice_array = ndarray::Array2::from_shape_vec((400, 256), voice_f32)
         .map_err(|e| JsValue::from(format!("Failed to create voice array: {e}")))?;
     let style_vec = voice_array.row(ref_id).to_owned();
@@ -251,13 +279,4 @@ pub async fn infer_on_cpu_with_params(
     tracing::info!("Processing audio and generating WAV blob");
 
     process_and_get_blob(&slice[..len], len, None)
-}
-
-#[wasm_bindgen(js_name = "infer_webgpu")]
-pub async fn infer_on_webgpu_with_params(
-    _text: &str,
-    _voice_offset: usize,
-    _speed: f32,
-) -> Result<js_sys::Float32Array, JsValue> {
-    todo!("WebGPU inference not implemented yet")
 }
