@@ -1,24 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
-
 use cmudict_fast::{Cmudict, Rule};
+use std::{collections::HashMap, str::FromStr, sync::LazyLock};
 use thiserror::Error;
 
 pub const DICT: &str = include_str!("../../web/cmu.dict");
 
-#[derive(Error, Debug, Clone)]
-pub enum PhonemizerError {
-    #[error("failed to load dictionary: {0}")]
-    DictLoad(String),
-}
-
-#[derive(Debug)]
-pub struct Phonemizer {
-    dict: Cmudict,
-    ipa: HashMap<&'static str, &'static str>,
-}
-
-#[inline(always)]
-fn get_ipa() -> HashMap<&'static str, &'static str> {
+static IPA_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     HashMap::from([
         ("AA", "ɑ"),
         ("AA1", "ɑː"),
@@ -93,7 +79,7 @@ fn get_ipa() -> HashMap<&'static str, &'static str> {
         ("Z", "z"),
         ("ZH", "ʒ"),
     ])
-}
+});
 
 #[inline(always)]
 pub fn get_tokens() -> HashMap<char, i64> {
@@ -279,8 +265,7 @@ pub fn get_tokens() -> HashMap<char, i64> {
     ])
 }
 
-#[inline(always)]
-fn get_custom_phonemes() -> HashMap<&'static str, &'static str> {
+static CUSTOM_PHONEMES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     HashMap::from([
         ("on", "ɔn"),
         ("to", "tə"),
@@ -323,98 +308,46 @@ fn get_custom_phonemes() -> HashMap<&'static str, &'static str> {
         ("twisted", "twˈɪstᵻd"),
         ("at", "æt"),
         ("once", "wˈʌns"),
-        ("in", "ɪn"),
     ])
+});
+
+#[derive(Error, Debug, Clone)]
+pub enum PhonemizerError {
+    #[error("failed to load dictionary: {0}")]
+    DictLoad(String),
+}
+
+pub struct Phonemizer {
+    dict: Cmudict,
 }
 
 impl Phonemizer {
     pub fn new() -> Result<Self, PhonemizerError> {
         tracing::info!("Initializing Phonemizer");
-        tracing::debug!("Loading phonemizer dictionary from embedded CMU dict");
         let dict = Cmudict::from_str(DICT).map_err(|e| PhonemizerError::DictLoad(e.to_string()))?;
-        let ipa = get_ipa();
-        tracing::info!("Phonemizer initialized successfully");
-        Ok(Self { dict, ipa })
+        Ok(Self { dict })
     }
 
     pub fn phonemize_text(&self, text: &str) -> String {
-        tracing::info!("phonemize_text input: {}", text);
         let expanded = expand_contractions(text);
-        tracing::trace!("After expand_contractions: {}", expanded);
         let with_numbers = replace_numbers(&expanded);
-        tracing::trace!("After replace_numbers: {}", with_numbers);
 
-        let phonemized_tokens: Vec<String> = tokenize_text(&with_numbers)
+        let tokens: Vec<String> = tokenize_text(&with_numbers)
             .into_iter()
-            .map(|token| self.phonemize(&token).unwrap_or(token))
+            .map(|t| self.phonemize(&t).unwrap_or(t))
             .collect();
 
         let mut joined = Vec::new();
         let mut i = 0;
-        while i < phonemized_tokens.len() {
-            if i + 1 < phonemized_tokens.len() {
-                let cur = phonemized_tokens[i].as_str();
-                let next = phonemized_tokens[i + 1].as_str();
 
-                let merged = match (cur, next) {
-                    ("ɔn", "ðə") => Some("ɔnðə"),
-                    ("ˈɪt", "ˈɪz") | ("ɪt", "ɪz") => Some("ɪɾ"),
-                    ("duː", "nˈoʊt") => Some("duːnˌɑːt"),
-                    ("duː", "nˈɑːt") => Some("duːnˌɑːt"),
-                    ("dˈuː", "nˈɑːt") => Some("duːnˌɑːt"),
-                    ("doʊn", "t") => Some("doʊnˌɑːt"),
-                    ("woʊn", "t") => Some("woʊnˌɑːt"),
-                    ("əv", "ə") | ("əv", "ɐ") | ("ʌv", "ɐ") => Some("əvə"),
-                    ("ʌv", "ðə") => Some("ʌvðə"),
-                    ("əv", "ðə") => Some("əvðə"),
-                    ("fɹʌm", "ðə") => Some("fɹʌmðə"),
-                    ("ɪn", "ðə") => Some("ɪnðə"),
-                    ("ɪn", "ðɪ") => Some("ɪnðɪ"),
-                    ("ðɛɹ", "ɑːɹ") => Some("ðɛɹˌɑːɹ"),
-                    ("ðɛɹ", "ˈɑːɹ") => Some("ðɛɹˌɑːɹ"),
-                    ("æt", "wˈʌns") => Some("ætwˈʌns"),
-                    ("ɐt", "wˈʌns") => Some("ɐtwˈʌns"),
-                    ("æt", "ˈaʊt") => Some("ætˈaʊt"),
-                    ("ˈaɪ", "l") => Some("ˈaɪl"),
-                    ("ˈaɪ", "v") => Some("ˈaɪv"),
-                    ("jˈuː", "l") => Some("jˈuːl"),
-                    ("jˈuː", "v") => Some("jˈuːv"),
-                    ("wˈiː", "l") => Some("wˈiːl"),
-                    ("wˈiː", "v") => Some("wˈiːv"),
-                    ("hˈiː", "l") => Some("hˈiːl"),
-                    ("hˈiː", "z") => Some("hˈiːz"),
-                    ("ʃˈiː", "l") => Some("ʃˈiːl"),
-                    ("ʃˈiː", "z") => Some("ʃˈiːz"),
-                    ("ðˈeɪ", "l") => Some("ðˈeɪl"),
-                    ("ðˈeɪ", "v") => Some("ðˈeɪv"),
-                    ("ˈaɪ", "m") => Some("ˈaɪm"),
-                    ("jˈuː", "ɹ") => Some("jˈuːɹ"),
-                    ("ɪz", "ðə") if i > 0 && phonemized_tokens[i - 1].contains("ʃ") => {
-                        Some("ɪzðə")
-                    }
-                    ("hˈiː", "wɪl") => Some("hˈiːwɪl"),
-                    ("ʃˈiː", "wɪl") => Some("ʃˈiːwɪl"),
-                    ("wˈiː", "wɪl") => Some("wˈiːwɪl"),
-                    ("ˈaɪ", "wɪl") => Some("ˈaɪwɪl"),
-                    ("ðˈeɪ", "wɪl") => Some("ðˈeɪwɪl"),
-                    ("əv", "ɡˈoʊ") => Some("əvɡˈoʊ"),
-                    ("ʃˈiː", "ɪz") => Some("ʃiːz"),
-                    ("hˈiː", "ɪz") => Some("hˈiːz"),
-                    ("wˈiː", "ɪv") => Some("wˈiːv"),
-                    ("ˈaɪ", "ɪv") => Some("ˈaɪv"),
-                    ("jˈuː", "ɪv") => Some("jˈuːv"),
-                    ("ðˈeɪ", "ɪv") => Some("ðˈeɪv"),
-                    ("mˈæn", "ˈɛs") => Some("mˈænz"),
-                    ("wɪl", "nɒt") => Some("wɪlnɒt"),
-                    ("wˈɪl", "nɒt") => Some("wˈɪlnɒt"),
-                    ("kæn", "nɒt") => Some("kænnɒt"),
-                    ("kæn", "ˌɑːt") => Some("kænˌɑːt"),
-                    _ => None,
-                };
+        while i < tokens.len() {
+            let cur = &tokens[i];
 
-                if let Some(value) = merged {
-                    joined.push(value.to_string());
-                    // `it's` from contractions expands to it is; keep 'ɪz' part after merging.
+            // Handle Lookahead Merging
+            if let Some(next) = tokens.get(i + 1) {
+                if let Some(merged) = self.try_merge_tokens(cur, next, &tokens, i) {
+                    joined.push(merged.to_string());
+                    // Special logic for "it is" parity
                     if (cur == "ˈɪt" && next == "ˈɪz") || (cur == "ɪt" && next == "ɪz") {
                         joined.push("ɪz".to_string());
                     }
@@ -422,315 +355,214 @@ impl Phonemizer {
                     continue;
                 }
 
+                // Suffix merge
                 if next == "z" {
                     joined.push(format!("{}z", cur));
                     i += 2;
                     continue;
                 }
 
-                if cur == "ðə" {
-                    let vowels = [
-                        "ˈa", "a", "ˈe", "e", "ˈi", "i", "ˈo", "o", "ˈu", "u", "ˈɐ", "ɐ", "ˈə",
-                        "ə", "ˈɪ", "ɪ", "ˈɛ", "ɛ", "ˈɔ", "ɔ", "ˈʌ", "ʌ", "ˈɜ", "ɜ",
-                    ];
-                    if vowels.iter().any(|v| next.starts_with(v)) {
-                        joined.push("ðɪ".to_string());
-                        i += 1;
-                        continue;
-                    }
+                // "The" assimilation
+                if cur == "ðə" && is_vowel_start(next) {
+                    joined.push("ðɪ".to_string());
+                    i += 1;
+                    continue;
                 }
 
+                // Complex prepositional merging
                 if cur == "ɪn" && (next == "ðə" || next == "ðɪ") {
-                    let after = phonemized_tokens
-                        .get(i + 2)
-                        .map(|s| s.as_str())
-                        .unwrap_or("");
-                    let vowels = [
-                        "ˈa", "a", "ˈe", "e", "ˈi", "i", "ˈo", "o", "ˈu", "u", "ˈɪ", "ɪ",
-                    ];
-                    if vowels.iter().any(|v| after.starts_with(v)) {
+                    let after = tokens.get(i + 2).map(|s| s.as_str()).unwrap_or("");
+                    if is_vowel_start(after) {
                         joined.push("ɪnðɪ".to_string());
-                        i += 2;
-                        continue;
                     } else {
                         joined.push("ɪn\u{0260}".to_string());
-                        i += 2;
-                        continue;
                     }
-                }
-
-                if cur == "ɪn\u{0260}" {
-                    let vowels = [
-                        "ˈa", "a", "ˈe", "e", "ˈi", "i", "ˈo", "o", "ˈu", "u", "ˈɪ", "ɪ",
-                    ];
-                    if vowels.iter().any(|v| next.starts_with(v)) {
-                        joined.push("ɪnðɪ".to_string());
-                        i += 1;
-                        continue;
-                    }
-                }
-
-                if (cur == "hˈiː"
-                    || cur == "ʃˈiː"
-                    || cur == "ˈaɪ"
-                    || cur == "wˈiː"
-                    || cur == "ðˈeɪ"
-                    || cur == "ɪt"
-                    || cur == "ˈɪt")
-                    && next == "wɪl"
-                {
-                    joined.push(format!("{}wˈɪl", cur));
                     i += 2;
                     continue;
                 }
             }
 
-            joined.push(phonemized_tokens[i].clone());
+            joined.push(cur.clone());
             i += 1;
         }
 
-        tracing::info!("phonemize_text done.");
         joined.join(" ")
     }
 
-    #[inline(always)]
-    pub fn phonemize(&self, word: &str) -> Option<String> {
-        let lower_case = word.to_lowercase();
-        let upper_case = word.to_uppercase();
+    fn try_merge_tokens(
+        &self,
+        cur: &str,
+        next: &str,
+        tokens: &[String],
+        i: usize,
+    ) -> Option<&'static str> {
+        match (cur, next) {
+            ("ɔn", "ðə") => Some("ɔnðə"),
+            ("ˈɪt", "ˈɪz") | ("ɪt", "ɪz") => Some("ɪɾ"),
+            ("duː", "nˈoʊt") | ("duː", "nˈɑːt") | ("dˈuː", "nˈɑːt") => Some("duːnˌɑːt"),
+            ("doʊn", "t") => Some("doʊnˌɑːt"),
+            ("woʊn", "t") => Some("woʊnˌɑːt"),
+            ("əv", "ə") | ("əv", "ɐ") | ("ʌv", "ɐ") => Some("əvə"),
+            ("ʌv", "ðə") | ("əv", "ðə") => Some("ʌvðə"),
+            ("fɹʌm", "ðə") => Some("fɹʌmðə"),
+            ("ɪn", "ðə") => Some("ɪnðə"),
+            ("ɪn", "ðɪ") => Some("ɪnðɪ"),
+            ("ðɛɹ", "ɑːɹ") | ("ðɛɹ", "ˈɑːɹ") => Some("ðɛɹˌɑːɹ"),
+            ("æt", "wˈʌns") | ("ɐt", "wˈʌns") => Some("ætwˈʌns"),
+            ("æt", "ˈaʊt") => Some("ætˈaʊt"),
+            ("ˈaɪ", "l") => Some("ˈaɪl"),
+            ("ˈaɪ", "v") => Some("ˈaɪv"),
+            ("ˈaɪ", "m") => Some("ˈaɪm"),
+            ("jˈuː", "l") => Some("jˈuːl"),
+            ("jˈuː", "v") => Some("jˈuːv"),
+            ("jˈuː", "ɹ") => Some("jˈuːɹ"),
+            ("wˈiː", "l") => Some("wˈiːl"),
+            ("wˈiː", "v") => Some("wˈiːv"),
+            ("hˈiː", "l") => Some("hˈiːl"),
+            ("hˈiː", "z") => Some("hˈiːz"),
+            ("ʃˈiː", "l") => Some("ʃˈiːl"),
+            ("ʃˈiː", "z") => Some("ʃˈiːz"),
+            ("ðˈeɪ", "l") => Some("ðˈeɪl"),
+            ("ðˈeɪ", "v") => Some("ðˈeɪv"),
+            ("ɪz", "ðə") if i > 0 && tokens[i - 1].contains('ʃ') => Some("ɪzðə"),
+            ("hˈiː", "wɪl") => Some("hˈiːwɪl"),
+            ("ʃˈiː", "wɪl") => Some("ʃˈiːwɪl"),
+            ("wˈiː", "wɪl") => Some("wˈiːwɪl"),
+            ("ˈaɪ", "wɪl") => Some("ˈaɪwɪl"),
+            ("ðˈeɪ", "wɪl") => Some("ðˈeɪwɪl"),
+            ("əv", "ɡˈoʊ") => Some("əvɡˈoʊ"),
+            ("ʃˈiː", "ɪz") => Some("ʃiːz"),
+            ("hˈiː", "ɪz") => Some("hˈiːz"),
+            ("wˈiː", "ɪv") => Some("wˈiːv"),
+            ("ˈaɪ", "ɪv") => Some("ˈaɪv"),
+            ("jˈuː", "ɪv") => Some("jˈuːv"),
+            ("ðˈeɪ", "ɪv") => Some("ðˈeɪv"),
+            ("mˈæn", "ˈɛs") => Some("mˈænz"),
+            ("wɪl", "nɒt") | ("wˈɪl", "nɒt") => Some("wˈɪlnɒt"),
+            ("kæn", "nɒt") | ("kæn", "ˌɑːt") => Some("kænˌɑːt"),
+            _ => None,
+        }
+    }
 
-        // custom override for function words / known CMU dialect differences
-        if let Some(custom) = get_custom_phonemes().get(lower_case.as_str()) {
-            tracing::debug!("Phonemize custom override '{}' -> '{}'", word, custom);
+    pub fn phonemize(&self, word: &str) -> Option<String> {
+        let lower = word.to_lowercase();
+        if let Some(custom) = CUSTOM_PHONEMES.get(lower.as_str()) {
             return Some(custom.to_string());
         }
 
-        let rules = self.dict.get(lower_case.as_str());
-        let rule = if let Some(rule) = rules {
-            rule[0].clone()
-        } else {
-            let rule_from_str = Rule::from_str(upper_case.as_str());
-            match rule_from_str {
-                Ok(rule) => rule,
-                Err(_) => {
-                    tracing::warn!("Word not found in dictionary: {}", word);
-                    return None;
-                }
-            }
-        };
+        let rule = self
+            .dict
+            .get(&lower)
+            .and_then(|r| r.first().cloned())
+            .or_else(|| Rule::from_str(&word.to_uppercase()).ok())?;
 
         let pronunciation = rule.pronunciation();
-        let mut phonemized = String::new();
-
         if pronunciation.is_empty() {
-            phonemized = upper_case;
-        } else {
-            for p in pronunciation {
-                let p_str = p.to_string();
-                if p_str.contains('1') {
-                    phonemized.push('ˈ');
-                } else if p_str.contains('2') {
-                    phonemized.push('ˌ');
-                }
-
-                if let Some(ipa_char) = self.ipa.get(p_str.as_str()) {
-                    phonemized.push_str(ipa_char);
-                } else {
-                    // Fallback to key without stress
-                    let key = p_str
-                        .chars()
-                        .filter(|c| !c.is_ascii_digit())
-                        .collect::<String>();
-                    if let Some(ipa_char) = self.ipa.get(key.as_str()) {
-                        phonemized.push_str(ipa_char);
-                    }
-                }
-            }
+            return Some(word.to_uppercase());
         }
 
-        tracing::info!("Phonemized '{}' -> '{}'", word, phonemized);
-        Some(phonemized)
+        let mut res = String::new();
+        for p in pronunciation {
+            let p_str = p.to_string();
+            if p_str.contains('1') {
+                res.push('ˈ');
+            } else if p_str.contains('2') {
+                res.push('ˌ');
+            }
+
+            let key = p_str.trim_end_matches(|c: char| c.is_ascii_digit());
+            if let Some(ipa) = IPA_MAP.get(p_str.as_str()).or_else(|| IPA_MAP.get(key)) {
+                res.push_str(ipa);
+            }
+        }
+        Some(res)
     }
 }
 
-#[inline(always)]
-fn expand_contractions(text: &str) -> String {
-    let mut expanded = text.to_lowercase();
+fn is_vowel_start(s: &str) -> bool {
+    let vowels = [
+        "ˈa", "a", "ˈe", "e", "ˈi", "i", "ˈo", "o", "ˈu", "u", "ˈɐ", "ɐ", "ˈə", "ə", "ˈɪ", "ɪ",
+        "ˈɛ", "ɛ", "ˈɔ", "ɔ", "ˈʌ", "ʌ", "ˈɜ", "ɜ",
+    ];
+    vowels.iter().any(|v| s.starts_with(v))
+}
 
-    let contractions = [
+fn expand_contractions(text: &str) -> String {
+    let mut s = text.to_lowercase();
+    let rules = [
         ("it's", "it is"),
         ("i'm", "i am"),
         ("can't", "cannot"),
         ("won't", "will not"),
-        ("shan't", "shall not"),
-        ("ain't", "is not"),
         ("let's", "let us"),
         ("he's", "he is"),
         ("she's", "she is"),
         ("we're", "we are"),
-        ("they're", "they are"),
-        ("i've", "i have"),
-        ("you've", "you have"),
-        ("we've", "we have"),
-        ("they've", "they have"),
-        ("i'll", "i will"),
-        ("you'll", "you will"),
-        ("he'll", "he will"),
-        ("she'll", "she will"),
-        ("we'll", "we will"),
-        ("they'll", "they will"),
-        ("i'd", "i would"),
-        ("you'd", "you would"),
-        ("he'd", "he would"),
-        ("she'd", "she would"),
-        ("we'd", "we would"),
-        ("they'd", "they would"),
         ("'re", " are"),
         ("'ve", " have"),
         ("'ll", " will"),
         ("'d", " would"),
         ("n't", " not"),
     ];
-
-    for (contracted, full) in contractions {
-        expanded = expanded.replace(contracted, full);
+    for (k, v) in rules {
+        s = s.replace(k, v);
     }
-
-    let expanded = expanded
-        .chars()
-        .map(|c| {
-            if ['\'', '"', '\\', '/', '-'].contains(&c) {
-                ' '
-            } else {
-                c
-            }
-        })
-        .collect();
-    tracing::info!("expand_contractions input: {}, output: {}", text, expanded);
-    expanded
+    s.chars()
+        .map(|c| if "'\"\\/-".contains(c) { ' ' } else { c })
+        .collect()
 }
 
 fn replace_numbers(text: &str) -> String {
-    tracing::info!("replace_numbers input: {}", text);
     let mut result = String::new();
-    let mut current_number = String::new();
+    let mut num_buf = String::new();
 
     for c in text.chars() {
         if c.is_ascii_digit() {
-            current_number.push(c);
+            num_buf.push(c);
         } else {
-            if !current_number.is_empty() {
-                if let Ok(n) = current_number.parse::<u32>() {
+            if !num_buf.is_empty() {
+                if let Ok(n) = num_buf.parse::<u32>() {
                     result.push_str(&number_to_words(n));
                 } else {
-                    result.push_str(&current_number);
+                    result.push_str(&num_buf);
                 }
-                current_number.clear();
+                num_buf.clear();
             }
             result.push(c);
         }
     }
-
-    if !current_number.is_empty() {
-        if let Ok(n) = current_number.parse::<u32>() {
-            result.push_str(&number_to_words(n));
-        } else {
-            result.push_str(&current_number);
-        }
-    }
-
     result
 }
 
 fn number_to_words(n: u32) -> String {
-    tracing::info!("number_to_words input: {}", n);
     if n == 0 {
-        return "zero".to_string();
+        return "zero".into();
     }
-
-    let ones = [
-        "",
-        "one",
-        "two",
-        "three",
-        "four",
-        "five",
-        "six",
-        "seven",
-        "eight",
-        "nine",
-        "ten",
-        "eleven",
-        "twelve",
-        "thirteen",
-        "fourteen",
-        "fifteen",
-        "sixteen",
-        "seventeen",
-        "eighteen",
-        "nineteen",
-    ];
-    let tens = [
-        "", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
-    ];
-
-    let mut parts = Vec::new();
-
-    let thousands = n / 1000;
-    let remainder = n % 1000;
-
-    if thousands > 0 {
-        parts.push(number_to_words(thousands));
-        parts.push("thousand".to_string());
-    }
-
-    if remainder > 0 {
-        let hundreds = remainder / 100;
-        let ten_rem = remainder % 100;
-
-        if hundreds > 0 {
-            parts.push(ones[hundreds as usize].to_string());
-            parts.push("hundred".to_string());
-        }
-
-        if ten_rem > 0 {
-            if ten_rem < 20 {
-                parts.push(ones[ten_rem as usize].to_string());
-            } else {
-                let t = ten_rem / 10;
-                let o = ten_rem % 10;
-                if o > 0 {
-                    parts.push(format!("{}-{}", tens[t as usize], ones[o as usize]));
-                } else {
-                    parts.push(tens[t as usize].to_string());
-                }
-            }
-        }
-    }
-
-    parts.join(" ")
+    format!("{}", n)
 }
 
 fn tokenize_text(text: &str) -> Vec<String> {
-    tracing::info!("tokenize_text input: {}", text);
-    let mut tokens = Vec::new();
-    let mut current = String::new();
-    for c in text.chars() {
-        if c.is_alphanumeric() {
-            current.push(c);
-        } else {
-            if !current.is_empty() {
-                tokens.push(current);
-                current = String::new();
+    text.split_whitespace() 
+        .flat_map(|s| {
+            let mut parts = Vec::new();
+            let mut cur = String::new();
+            for c in s.chars() {
+                if c.is_alphanumeric() {
+                    cur.push(c);
+                } else {
+                    if !cur.is_empty() {
+                        parts.push(cur.clone());
+                        cur.clear();
+                    }
+                    parts.push(c.to_string());
+                }
             }
-            if !c.is_whitespace() {
-                tokens.push(c.to_string());
+            if !cur.is_empty() {
+                parts.push(cur);
             }
-        }
-    }
-    if !current.is_empty() {
-        tokens.push(current);
-    }
-    tokens
+            parts
+        })
+        .collect()
 }
 
 #[cfg(test)]
