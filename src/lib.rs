@@ -19,17 +19,16 @@ use wasm_bindgen::prelude::*;
 use web_sys::Blob;
 
 pub mod phonemizer;
-#[cfg(target_arch = "wasm32")]
 mod session;
+
 #[cfg(target_arch = "wasm32")]
 mod voices;
 #[cfg(target_arch = "wasm32")]
 mod wav;
 
-#[cfg(target_arch = "wasm32")]
 use phonemizer::phonemizer::Phonemizer;
-#[cfg(target_arch = "wasm32")]
 use session::KittenSession;
+
 #[cfg(target_arch = "wasm32")]
 use session::preload_model;
 #[cfg(target_arch = "wasm32")]
