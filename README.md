@@ -2,6 +2,10 @@
 
 Experimental WebAssembly (WASM) inference app of [KittenTTS](https://github.com/KittenML/KittenTTS), a high-quality, lightweight Text-to-Speech engine. This project enables high-performance, private, on-device speech synthesis directly in the browser using ONNX Runtime Web.
 
+Demo : https://mtb0x1.github.io/kittentts_wasm/ 
+
+Demo with tracing in web console : https://mtb0x1.github.io/kittentts_wasm/?tracing=on
+
 ## Prerequisites
 
 Before building, ensure you have the following installed:
@@ -49,4 +53,4 @@ You can enable detailed logging in the browser console by appending a `tracing` 
 TBD (See `Cargo.toml`)
 
 ---
-*Note: This is an experimental project and some changes might occur time to time.*
+*Note: This is an experimental project and some changes might occur time to time [Todo](TODO.md).*
