@@ -1,5 +1,9 @@
 build: build-release
 
+lint:
+    cargo fmt
+    cargo clippy --target wasm32-unknown-unknown -- -D warnings
+
 test: 
     cargo test --target x86_64-unknown-linux-gnu -- --nocapture
 clean:

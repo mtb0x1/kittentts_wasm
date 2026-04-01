@@ -1,6 +1,5 @@
 use once_cell::sync::Lazy;
 use ort::session::RunOptions;
-use ort::session::Session;
 use ort::value::Tensor;
 use std::sync::{Arc, Mutex};
 use tracing_subscriber::EnvFilter;
@@ -48,7 +47,7 @@ pub fn init() {
                     "debug" | "info" | "warn" | "error" | "trace" => {
                         EnvFilter::new(format!("ort={level_str},kittentts_wasm={level_str}"))
                     }
-                    _ => EnvFilter::new(format!("ort=trace,kittentts_wasm=trace")),
+                    _ => EnvFilter::new("ort=trace,kittentts_wasm=trace"),
                 };
 
                 let fmt_layer = tracing_subscriber::fmt::layer()
@@ -60,7 +59,7 @@ pub fn init() {
 
                 let perf_layer =
                     tracing_web::performance_layer().with_details_from_fields(Pretty::default());
-                let _ = tracing_subscriber::registry()
+                tracing_subscriber::registry()
                     .with(fmt_layer)
                     .with(perf_layer)
                     .try_init()
@@ -114,7 +113,8 @@ pub async fn load_model_with_force_reload(
         "webgl" => (ort_web::FEATURE_WEBGL, "WEBGL"),
         "webgpu" => (ort_web::FEATURE_WEBGPU, "WEBGPU"),
         "webnn" => (ort_web::FEATURE_WEBNN, "WEBNN"),
-        "cpu" | "none" | "ort-web" | _ => (ort_web::FEATURE_NONE, "CPU"),
+        "cpu" | "none" | "ort-web" => (ort_web::FEATURE_NONE, "CPU"),
+        _ => (ort_web::FEATURE_NONE, "CPU"),
     };
 
     tracing::info!("Initializing ORT Web API with feature {}", select_feature);
@@ -175,6 +175,7 @@ pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = "infer")]
+#[allow(clippy::await_holding_lock)]
 pub async fn infer_on_cpu_with_params(
     text: &str,
     voice: &str,
@@ -186,14 +187,6 @@ pub async fn infer_on_cpu_with_params(
         voice,
         speed
     );
-
-    let mut global_session = GLOBAL_SESSION
-        .lock()
-        .map_err(|e| JsValue::from(format!("Lock error: {e}")))?;
-    let session_wrapper = global_session
-        .as_mut()
-        .ok_or_else(|| JsValue::from("Model not loaded yet"))?;
-    let session: &mut Session = session_wrapper.session_mut();
 
     let phonemizer = Phonemizer::new()
         .map_err(|e| JsValue::from(format!("Failed to create phonemizer: {e}")))?;
@@ -244,10 +237,23 @@ pub async fn infer_on_cpu_with_params(
         RunOptions::new().map_err(|e| JsValue::from(format!("RunOptions error: {e}")))?;
 
     tracing::info!("Starting ORT inference run");
-    let mut outputs = session
+
+    let session_ptr = {
+        let mut global_session = GLOBAL_SESSION
+            .lock()
+            .map_err(|e| JsValue::from(format!("Lock error: {e}")))?;
+        let ptr = global_session
+            .as_mut()
+            .ok_or_else(|| JsValue::from("Model not loaded yet"))?
+            as *mut KittenSession;
+        ptr
+    };
+
+    let mut outputs = unsafe { &mut *session_ptr }
+        .session_mut()
         .run_async(inputs, &run_options)
         .await
-        .map_err(|e| JsValue::from(format!("Inference failed: {e}")))?;
+        .map_err(|e| JsValue::from(format!("Inference failed: {}", e)))?;
 
     tracing::info!("Inference complete, synchronizing outputs");
 

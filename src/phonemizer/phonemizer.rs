@@ -351,7 +351,6 @@ impl Phonemizer {
                 let merged = match (cur, next) {
                     ("ɔn", "ðə") => Some("ɔnðə"),
                     ("ˈɪt", "ˈɪz") | ("ɪt", "ɪz") => Some("ɪɾ"),
-                    ("ɪt", "ɪz") => Some("ɪɾ"),
                     ("duː", "nˈoʊt") => Some("duːnˌɑːt"),
                     ("duː", "nˈɑːt") => Some("duːnˌɑːt"),
                     ("dˈuː", "nˈɑːt") => Some("duːnˌɑːt"),
@@ -433,24 +432,22 @@ impl Phonemizer {
                     }
                 }
 
-                if cur == "ɪn" {
-                    if next == "ðə" || next == "ðɪ" {
-                        let after = phonemized_tokens
-                            .get(i + 2)
-                            .map(|s| s.as_str())
-                            .unwrap_or("");
-                        let vowels = [
-                            "ˈa", "a", "ˈe", "e", "ˈi", "i", "ˈo", "o", "ˈu", "u", "ˈɪ", "ɪ",
-                        ];
-                        if vowels.iter().any(|v| after.starts_with(v)) {
-                            joined.push("ɪnðɪ".to_string());
-                            i += 2;
-                            continue;
-                        } else {
-                            joined.push("ɪn\u{0260}".to_string());
-                            i += 2;
-                            continue;
-                        }
+                if cur == "ɪn" && (next == "ðə" || next == "ðɪ") {
+                    let after = phonemized_tokens
+                        .get(i + 2)
+                        .map(|s| s.as_str())
+                        .unwrap_or("");
+                    let vowels = [
+                        "ˈa", "a", "ˈe", "e", "ˈi", "i", "ˈo", "o", "ˈu", "u", "ˈɪ", "ɪ",
+                    ];
+                    if vowels.iter().any(|v| after.starts_with(v)) {
+                        joined.push("ɪnðɪ".to_string());
+                        i += 2;
+                        continue;
+                    } else {
+                        joined.push("ɪn\u{0260}".to_string());
+                        i += 2;
+                        continue;
                     }
                 }
 
@@ -465,19 +462,18 @@ impl Phonemizer {
                     }
                 }
 
-                if cur == "hˈiː"
+                if (cur == "hˈiː"
                     || cur == "ʃˈiː"
                     || cur == "ˈaɪ"
                     || cur == "wˈiː"
                     || cur == "ðˈeɪ"
                     || cur == "ɪt"
-                    || cur == "ˈɪt"
+                    || cur == "ˈɪt")
+                    && next == "wɪl"
                 {
-                    if next == "wɪl" {
-                        joined.push(format!("{}wˈɪl", cur));
-                        i += 2;
-                        continue;
-                    }
+                    joined.push(format!("{}wˈɪl", cur));
+                    i += 2;
+                    continue;
                 }
             }
 

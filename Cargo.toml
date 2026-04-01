@@ -20,11 +20,6 @@ once_cell = "1"
 ort = { version = "2.0.0-rc.12", default-features = false, features = [
     "alternative-backend",
 ] }
-
-#ort-candle =  { version = "0.3.0", default-features = false }
-#ort-tract = { version = "0.3.0", default-features = false }
-#Needed by ort-tract and candle
-#getrandom = { version = "0.3.4", features = ["wasm_js"] }
 rayon = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

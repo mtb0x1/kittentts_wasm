@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, anyhow};
+use ort::session::Session;
 use ort::session::builder::SessionBuilder;
-use ort::session::{self, Session};
 // use std::sync::Arc;
 
 pub const ONNX_MODEL_BYTES: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx");
@@ -61,6 +61,7 @@ impl KittenSession {
         &mut self.session
     }
 
+    #[allow(dead_code)]
     pub(crate) fn session(&self) -> &Session {
         &self.session
     }
