@@ -33,15 +33,48 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: wasm-build
-        path: pkg/
+        path: web/
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
     
-    steps:   
-    - name: TBD
-      run:
-        echo "TBD"
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Configure git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        
+    - name: Initialize gh-pages branch
+      run: |
+        if ! git rev-parse --verify gh-pages 2>/dev/null; then
+          git checkout --orphan gh-pages
+          git rm -rf .
+          git commit --allow-empty -m "Initial gh-pages branch"
+          git checkout master
+        fi
+        git checkout gh-pages
+        
+    - uses: actions/download-artifact@v7
+      with:
+        name: wasm-build
+        path: .
+        
+    - name: Commit & Push
+      run: |
+        # Move web/ contents to root (artifact includes web/ folder)
+        mv web/* .
+        rm -rf web
+        git add -A
+        git diff --staged --quiet || git commit -m "Deploy $(date -u +%Y-%m-%dT%H%M%SZ)"
+        git push
     
  
