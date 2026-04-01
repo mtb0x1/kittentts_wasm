@@ -52,7 +52,7 @@
 - [ ] test on different hardware
 - [x] voices names need to be aligned (todo in build.rs)
 - [ ] clean cargo dep : remove useless crates.
-- [ ] ci wasm-pack takes forever to install
+- [x] ci wasm-pack takes forever to install
 
 
 ## Refactoring :
