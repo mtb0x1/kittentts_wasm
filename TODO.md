@@ -28,7 +28,7 @@
     - [ ] TBC
 
 ## build & deploy
-- [ ] optimize wasm bundle size
+- [x] optimize wasm bundle size
     - [x] using wasm-opt we shave only 100kb on 82Mb 
         `wasm-opt --all-features -O4 kittentts_wasm_bg.wasm -o kittentts_wasm_bg_opt.wasm`
     - [x] zip onnx file to reduce size, and unzip in memory at init()
@@ -42,12 +42,12 @@
     - [ ] explore alternative backends (https://ort.pyke.io/backends)
         - [X] tried ort-tract and ort-candle, can't even compile (getrandom dep with 2 version so can't select at runtime so need to be a feature + can't compile due to some trait errors)
         - [ ] plug wrapper on our own for tract, burn, candle ...
+        - [ ] explore using WebGPU for hardware acceleration
+        - [ ] explore using WebNN (browser API for ml inference) for better perfs   
     - [ ] gets worst with time (mem leak ?)
     - [ ] gets worst(10x factor) with input size (10 chars vs 100 chars)
 - [x] Tokenizer fails to process words like (it's, end of sentence., end-of-things ... etc)
 - [ ] optimize hot paths
-- [ ] explore using WebGPU for hardware acceleration
-- [ ] explore using WebNN (browser API for ml inference) for better perfs
 - [x] activate simd feature for wasm and more
 - [ ] test on different hardware
 - [x] voices names need to be aligned (todo in build.rs)
