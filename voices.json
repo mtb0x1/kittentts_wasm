@@ -1,0 +1,10 @@
+[
+  {"technical": "expr-voice-2-m", "colloquial": "Jasper", "offset": 0},
+  {"technical": "expr-voice-2-f", "colloquial": "Bella", "offset": 102400},
+  {"technical": "expr-voice-3-m", "colloquial": "Bruno", "offset": 204800},
+  {"technical": "expr-voice-3-f", "colloquial": "Luna", "offset": 307200},
+  {"technical": "expr-voice-4-m", "colloquial": "Hugo", "offset": 409600},
+  {"technical": "expr-voice-4-f", "colloquial": "Rosie", "offset": 512000},
+  {"technical": "expr-voice-5-m", "colloquial": "Leo", "offset": 614400},
+  {"technical": "expr-voice-5-f", "colloquial": "Kiki", "offset": 716800}
+]

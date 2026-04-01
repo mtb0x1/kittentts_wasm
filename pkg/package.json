@@ -1,0 +1,21 @@
+{
+  "name": "kittentts_wasm",
+  "type": "module",
+  "description": "KittenTTS wasm : CSR app using rust",
+  "version": "0.0.8-mini",
+  "license": "TBD",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mtb0x1/kittentts_wasm"
+  },
+  "files": [
+    "kittentts_wasm_bg.wasm",
+    "kittentts_wasm.js",
+    "kittentts_wasm.d.ts"
+  ],
+  "main": "kittentts_wasm.js",
+  "types": "kittentts_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

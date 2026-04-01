@@ -1,0 +1,332 @@
+:root {
+    --bg-color: #0d1117;
+    --card-bg: rgba(22, 27, 34, 0.6);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    --accent: #58a6ff;
+    --accent-hover: #3182ce;
+    --error-bg: rgba(248, 81, 73, 0.1);
+    --error-border: rgba(248, 81, 73, 0.4);
+    --error-text: #ff7b72;
+    --success: #3fb950;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    line-height: 1.5;
+    background-image: radial-gradient(circle at top, rgba(88, 166, 255, 0.05) 0%, transparent 40%);
+}
+
+.app-container {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+header {
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, #ffffff, #8b949e);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+header h1 span {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--accent);
+    -webkit-text-fill-color: var(--accent);
+    vertical-align: middle;
+}
+
+header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 2rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+textarea {
+    width: 100%;
+    background: rgba(13, 17, 23, 0.8);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: 1rem;
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}
+
+textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn {
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.btn:disabled {
+    background: var(--card-border);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+select {
+    width: 100%;
+    background: rgba(13, 17, 23, 0.8);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: 0.95rem;
+    cursor: pointer;
+    appearance: none;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin-top: 0.5rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+input[type="range"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+input[type="checkbox"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.status-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    position: relative;
+    box-shadow: 0 0 8px var(--accent);
+}
+
+.status-indicator.success {
+    background-color: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+.status-indicator.error {
+    background-color: var(--error-text);
+    box-shadow: 0 0 8px var(--error-text);
+}
+
+.status-indicator.processing {
+    animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.7; }
+    100% { transform: scale(1.1); opacity: 1; }
+}
+
+.audio-output {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--card-border);
+}
+
+audio {
+    width: 100%;
+    height: 48px;
+    border-radius: 8px;
+    outline: none;
+}
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.25rem;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-family: var(--font-family);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.1s;
+}
+
+.download-btn:hover {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.download-btn:active {
+    transform: translateY(1px);
+}
+
+/* Customizing audio player for webkit */
+audio::-webkit-media-controls-panel {
+    background-color: rgba(22, 27, 34, 1);
+}
+audio::-webkit-media-controls-current-time-display,
+audio::-webkit-media-controls-time-remaining-display {
+    color: var(--text-primary);
+}
+
+.error-banner {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.loader {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

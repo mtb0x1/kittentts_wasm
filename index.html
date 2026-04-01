@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>KittenTTS via wasm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script type="importmap">
+    {
+      "imports": {
+        "env": "./env.js"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>KittenTTS <span>wasm</span></h1>
+            <p>TTS model 0.8 running locally in your browser</p>
+        </header>
+
+        <main class="card">
+            <div id="error-banner" class="error-banner hidden"></div>
+            
+            <div class="input-group">
+                <label for="text-input">Text to Synthesize</label>
+                <textarea id="text-input" placeholder="Enter text here..." rows="4" disabled></textarea>
+            </div>
+
+            <div class="settings-grid">
+                <div class="input-group">
+                    <label for="backend-select">Backend</label>
+                    <select id="backend-select" disabled>
+                        <option value="ort-web">ort-web (default)</option>
+                        <option value="tract">tract (TBD)</option>
+                        <option value="burn">burn (TBD)</option>
+                        <option value="candle">candle (TBD)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="feature-select">Feature</label>
+                    <select id="feature-select" disabled>
+                        <option value="cpu">CPU (default)</option>
+                        <option value="webgl">WebGL</option>
+                        <option value="webgpu">WebGPU</option>
+                        <option value="webnn">WebNN</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="voice-select">Voice</label>
+                    <select id="voice-select" disabled>
+                        <option value="default">Default Voice</option>
+                        <option value="en-us-1">English (US) 1</option>
+                        <option value="en-gb-1">English (GB) 1</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="speed-slider">Speed (<span id="speed-value">1.0</span>x)</label>
+                    <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" disabled>
+                </div>
+            </div>
+
+            <div class="checkbox-group" id="legacy-webgpu-row" style="display: none;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="webgpu-checkbox" disabled>
+                    Try WebGPU (experimental)
+                </label>
+            </div>
+
+            <div class="controls">
+                <button id="generate-btn" class="btn" disabled>
+                    <span class="btn-text">Initializing Model...</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </div>
+
+            <div id="status-container" class="status-container">
+                <div class="status-indicator"></div>
+                <span id="status-text">Loading WASM module...</span>
+            </div>
+
+            <div id="audio-output" class="audio-output hidden">
+                <label>Generated Audio</label>
+                <audio id="player" controls></audio>
+                <a id="download-link" class="download-btn" href="#" download="kittentts.wav">⬇ Download WAV</a>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="./app.mjs"></script>
+</body>
+</html>
