@@ -2,28 +2,44 @@ use once_cell::sync::Lazy;
 use ort::session::RunOptions;
 use ort::value::Tensor;
 use std::sync::{Arc, Mutex};
+
+#[cfg(target_arch = "wasm32")]
 use tracing_subscriber::EnvFilter;
+#[cfg(target_arch = "wasm32")]
 use tracing_subscriber::fmt::{
     format::{FmtSpan, Pretty},
     time::UtcTime,
 };
+#[cfg(target_arch = "wasm32")]
 use tracing_subscriber::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
+#[cfg(target_arch = "wasm32")]
 use web_sys::Blob;
 
 pub mod phonemizer;
+#[cfg(target_arch = "wasm32")]
 mod session;
+#[cfg(target_arch = "wasm32")]
 mod voices;
+#[cfg(target_arch = "wasm32")]
 mod wav;
-use phonemizer::phonemizer::{Phonemizer, get_tokens};
+
+#[cfg(target_arch = "wasm32")]
+use phonemizer::phonemizer::Phonemizer;
+#[cfg(target_arch = "wasm32")]
 use session::KittenSession;
+#[cfg(target_arch = "wasm32")]
 use wav::process_and_get_blob;
 
 static GLOBAL_TRACING: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 
 static GLOBAL_SESSION: Lazy<Arc<Mutex<Option<KittenSession>>>> =
     Lazy::new(|| Arc::new(Mutex::new(None)));
+
+#[cfg(target_arch = "wasm32")]
+static GLOBAL_PHONEMIZER: Lazy<Mutex<Option<Phonemizer>>> = Lazy::new(|| Mutex::new(None));
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
@@ -169,8 +185,32 @@ pub fn is_model_loaded() -> bool {
     loaded
 }
 
+#[cfg(target_arch = "wasm32")]
+fn get_or_init_phonemizer() -> Result<std::sync::MutexGuard<'static, Option<Phonemizer>>, JsValue> {
+    tracing::debug!("Entering get_or_init_phonemizer");
+    let mut guard = GLOBAL_PHONEMIZER.lock().map_err(|e| {
+        tracing::error!("Failed to acquire phonemizer lock: {}", e);
+        JsValue::from(format!("Failed to acquire phonemizer lock: {}", e))
+    })?;
+    if guard.is_none() {
+        tracing::info!("Initializing global phonemizer");
+        *guard = Some(Phonemizer::new().map_err(|e| {
+            tracing::error!("Failed to create phonemizer: {}", e);
+            JsValue::from(format!("Failed to create phonemizer: {}", e))
+        })?);
+        tracing::info!("Phonemizer initialized successfully");
+    } else {
+        tracing::debug!("Using cached phonemizer");
+    }
+    tracing::debug!("Exiting get_or_init_phonemizer");
+    Ok(guard)
+}
+
 pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
-    phonemizer.phonemize_text(text)
+    tracing::trace!("Phonemizing text: {}", text);
+    let result = phonemizer.phonemize_text(text);
+    tracing::trace!("Phonemization result: {}", result);
+    result
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -188,10 +228,10 @@ pub async fn infer_on_cpu_with_params(
         speed
     );
 
-    let phonemizer = Phonemizer::new()
-        .map_err(|e| JsValue::from(format!("Failed to create phonemizer: {e}")))?;
-    let tokens_lookup = get_tokens();
-    let tokens: Vec<i64> = phonemize(text, &phonemizer)
+    let phonemizer_guard = get_or_init_phonemizer()?;
+    let phonemizer = phonemizer_guard.as_ref().expect("phonemizer initialized");
+    let tokens_lookup = phonemizer::phonemizer::get_tokens();
+    let tokens: Vec<i64> = phonemize(text, phonemizer)
         .chars()
         .flat_map(|c| tokens_lookup.get(&c))
         .cloned()
@@ -238,16 +278,12 @@ pub async fn infer_on_cpu_with_params(
 
     tracing::info!("Starting ORT inference run");
 
-    let session_ptr = {
-        let mut global_session = GLOBAL_SESSION
-            .lock()
-            .map_err(|e| JsValue::from(format!("Lock error: {e}")))?;
-        let ptr = global_session
-            .as_mut()
-            .ok_or_else(|| JsValue::from("Model not loaded yet"))?
-            as *mut KittenSession;
-        ptr
-    };
+    let session_ptr = GLOBAL_SESSION
+        .lock()
+        .map_err(|e| JsValue::from(format!("Lock error: {e}")))?
+        .as_mut()
+        .ok_or_else(|| JsValue::from("Model not loaded yet"))?
+        as *mut KittenSession;
 
     let mut outputs = unsafe { &mut *session_ptr }
         .session_mut()

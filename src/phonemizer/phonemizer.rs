@@ -17,6 +17,7 @@ pub struct Phonemizer {
     ipa: HashMap<&'static str, &'static str>,
 }
 
+#[inline(always)]
 fn get_ipa() -> HashMap<&'static str, &'static str> {
     HashMap::from([
         ("AA", "ɑ"),
@@ -94,6 +95,7 @@ fn get_ipa() -> HashMap<&'static str, &'static str> {
     ])
 }
 
+#[inline(always)]
 pub fn get_tokens() -> HashMap<char, i64> {
     HashMap::from([
         ('$', 0),
@@ -277,6 +279,7 @@ pub fn get_tokens() -> HashMap<char, i64> {
     ])
 }
 
+#[inline(always)]
 fn get_custom_phonemes() -> HashMap<&'static str, &'static str> {
     HashMap::from([
         ("on", "ɔn"),
@@ -326,15 +329,20 @@ fn get_custom_phonemes() -> HashMap<&'static str, &'static str> {
 
 impl Phonemizer {
     pub fn new() -> Result<Self, PhonemizerError> {
+        tracing::info!("Initializing Phonemizer");
         tracing::debug!("Loading phonemizer dictionary from embedded CMU dict");
         let dict = Cmudict::from_str(DICT).map_err(|e| PhonemizerError::DictLoad(e.to_string()))?;
         let ipa = get_ipa();
+        tracing::info!("Phonemizer initialized successfully");
         Ok(Self { dict, ipa })
     }
 
     pub fn phonemize_text(&self, text: &str) -> String {
+        tracing::info!("phonemize_text input: {}", text);
         let expanded = expand_contractions(text);
+        tracing::trace!("After expand_contractions: {}", expanded);
         let with_numbers = replace_numbers(&expanded);
+        tracing::trace!("After replace_numbers: {}", with_numbers);
 
         let phonemized_tokens: Vec<String> = tokenize_text(&with_numbers)
             .into_iter()
@@ -481,9 +489,11 @@ impl Phonemizer {
             i += 1;
         }
 
+        tracing::info!("phonemize_text done.");
         joined.join(" ")
     }
 
+    #[inline(always)]
     pub fn phonemize(&self, word: &str) -> Option<String> {
         let lower_case = word.to_lowercase();
         let upper_case = word.to_uppercase();
@@ -537,11 +547,12 @@ impl Phonemizer {
             }
         }
 
-        tracing::debug!("Phonemized '{}' -> '{}'", word, phonemized);
+        tracing::info!("Phonemized '{}' -> '{}'", word, phonemized);
         Some(phonemized)
     }
 }
 
+#[inline(always)]
 fn expand_contractions(text: &str) -> String {
     let mut expanded = text.to_lowercase();
 
@@ -584,7 +595,7 @@ fn expand_contractions(text: &str) -> String {
         expanded = expanded.replace(contracted, full);
     }
 
-    expanded
+    let expanded = expanded
         .chars()
         .map(|c| {
             if ['\'', '"', '\\', '/', '-'].contains(&c) {
@@ -593,10 +604,13 @@ fn expand_contractions(text: &str) -> String {
                 c
             }
         })
-        .collect()
+        .collect();
+    tracing::info!("expand_contractions input: {}, output: {}", text, expanded);
+    expanded
 }
 
 fn replace_numbers(text: &str) -> String {
+    tracing::info!("replace_numbers input: {}", text);
     let mut result = String::new();
     let mut current_number = String::new();
 
@@ -628,6 +642,7 @@ fn replace_numbers(text: &str) -> String {
 }
 
 fn number_to_words(n: u32) -> String {
+    tracing::info!("number_to_words input: {}", n);
     if n == 0 {
         return "zero".to_string();
     }
@@ -696,6 +711,7 @@ fn number_to_words(n: u32) -> String {
 }
 
 fn tokenize_text(text: &str) -> Vec<String> {
+    tracing::info!("tokenize_text input: {}", text);
     let mut tokens = Vec::new();
     let mut current = String::new();
     for c in text.chars() {

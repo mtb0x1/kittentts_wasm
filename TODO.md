@@ -53,3 +53,11 @@
 - [x] voices names need to be aligned (todo in build.rs)
 - [ ] clean cargo dep : remove useless crates.
 - [ ] ci wasm-pack takes forever to install
+
+
+## Refactoring :
+- [x] make phonemizer constants lazy/static (get_custom_phonemes, CONTRACTIONS)
+- [ ] extract repeated vowel arrays to const
+- [x] cache phonemizer in lib.rs instead of creating per inference
+- [x] make get_tokens() lazy/static or inline ?
+- [x] fix unused imports for non-wasm targets
