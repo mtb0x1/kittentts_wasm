@@ -1,9 +1,40 @@
 use anyhow::{Context, Result, anyhow};
+use once_cell::sync::Lazy;
 use ort::session::Session;
 use ort::session::builder::SessionBuilder;
+use std::io::Read;
 // use std::sync::Arc;
 
-pub const ONNX_MODEL_BYTES: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx");
+// Use compressed ONNX file (decompress at runtime from zip)
+static ONNX_MODEL_COMPRESSED: &[u8] = include_bytes!("../models/kitten_tts_mini_v0_8.onnx.zip");
+static ONNX_MODEL_BYTES: Lazy<Vec<u8>> = Lazy::new(|| {
+    tracing::info!(
+        "Decompressing ONNX model zip ({} KB compressed)",
+        ONNX_MODEL_COMPRESSED.len() / 1024
+    );
+    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(ONNX_MODEL_COMPRESSED))
+        .expect("Failed to open zip archive");
+    let mut model_file = archive
+        .by_name("model.onnx")
+        .expect("Failed to find model.onnx in zip");
+    let mut decompressed = Vec::new();
+    model_file
+        .read_to_end(&mut decompressed)
+        .expect("Failed to read model from zip");
+    tracing::info!("Decompressed to {} MB", decompressed.len() / 1_000_000);
+    decompressed
+});
+
+#[inline(always)]
+pub fn get_model_bytes() -> &'static [u8] {
+    &ONNX_MODEL_BYTES
+}
+
+#[inline(always)]
+pub fn preload_model() {
+    let _ = ONNX_MODEL_BYTES.len();
+    tracing::info!("Model buffer preloaded");
+}
 
 #[wasm_bindgen::prelude::wasm_bindgen(js_name = "WasmSession")]
 pub struct KittenSession {
@@ -19,7 +50,7 @@ impl KittenSession {
 
         tracing::info!(
             "Using embedded model, size: {} MB",
-            ONNX_MODEL_BYTES.len() / 1_000_000
+            get_model_bytes().len() / 1_000_000
         );
 
         let mut session = SessionBuilder::new()
@@ -46,7 +77,7 @@ impl KittenSession {
         */
 
         let session = session
-            .commit_from_memory(ONNX_MODEL_BYTES)
+            .commit_from_memory(get_model_bytes())
             .await
             .map_err(|e| anyhow!("Failed to load ONNX session: {e}"))
             .context("while committing model from bytes")?;

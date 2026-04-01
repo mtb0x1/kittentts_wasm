@@ -31,6 +31,8 @@ use phonemizer::phonemizer::Phonemizer;
 #[cfg(target_arch = "wasm32")]
 use session::KittenSession;
 #[cfg(target_arch = "wasm32")]
+use session::preload_model;
+#[cfg(target_arch = "wasm32")]
 use wav::process_and_get_blob;
 
 static GLOBAL_TRACING: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
@@ -85,6 +87,7 @@ pub fn init() {
         }
     }
     tracing::info!("KittenTTS WASM initialized");
+    preload_model();
 }
 
 #[cfg(target_arch = "wasm32")]

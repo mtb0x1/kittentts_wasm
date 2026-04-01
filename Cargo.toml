@@ -49,6 +49,7 @@ web-sys = { version = "0.3", features = [
 ] }
 ndarray = "0.15"
 cmudict-fast = "0.8.0"
+zip = "8"
 
 
 [build-dependencies]

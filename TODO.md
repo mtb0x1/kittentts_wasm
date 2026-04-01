@@ -31,7 +31,7 @@
 - [ ] optimize wasm bundle size
     - [x] using wasm-opt we shave only 100kb on 82Mb 
         `wasm-opt --all-features -O4 kittentts_wasm_bg.wasm -o kittentts_wasm_bg_opt.wasm`
-    - [ ] zip onnx and bin files to reduce size, and unzip in memory at _start
+    - [x] zip onnx file to reduce size, and unzip in memory at init()
 - [x] test in browser
 - [x] handle CORS if needed
 - [x] document usage

@@ -62,6 +62,32 @@ fn main() {
         }
     }
 
+    // Compress ONNX to zip for smaller WASM bundle
+    let onnx_path = model_dir.join("kitten_tts_mini_v0_8.onnx");
+    let zip_path = model_dir.join("kitten_tts_mini_v0_8.onnx.zip");
+    if !zip_path.exists() && onnx_path.exists() {
+        use std::io::Write;
+        println!("Compressing ONNX to zip...");
+        let onnx_data = std::fs::read(&onnx_path).expect("Failed to read ONNX");
+        let original_size = onnx_data.len();
+        let file = std::fs::File::create(&zip_path).expect("Failed to create zip");
+        let mut zip = zip::ZipWriter::new(file);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        zip.start_file("model.onnx", options)
+            .expect("Failed to start zip entry");
+        zip.write_all(&onnx_data).expect("Failed to write to zip");
+        zip.finish().expect("Failed to finish zip");
+        let compressed_size = std::fs::metadata(&zip_path).unwrap().len() as usize;
+        println!(
+            "Created {}. Original: {} MB, Compressed: {} MB ({}% of original)",
+            zip_path.display(),
+            original_size / 1_000_000,
+            compressed_size / 1_000_000,
+            (compressed_size * 100) / original_size
+        );
+    }
+
     // Extract voices.npz to web/voices.json and models/voices.bin
     let voices_npz_path = model_dir.join("voices.npz");
     let config_path = model_dir.join("config.json");
