@@ -70,9 +70,7 @@ jobs:
         
     - name: Commit & Push
       run: |
-        # Move web/ contents to root (artifact includes web/ folder)
-        mv web/* .
-        rm -rf web
+        # Artifact from web/ uploads contents directly to root
         git add -A
         git diff --staged --quiet || git commit -m "Deploy $(date -u +%Y-%m-%dT%H%M%SZ)"
         git push
