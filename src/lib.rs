@@ -26,7 +26,8 @@ mod voices;
 #[cfg(target_arch = "wasm32")]
 mod wav;
 
-use phonemizer::phonemizer::Phonemizer;
+//use phonemizer::phonemizer::Phonemizer;
+use phonemica::wasm::Phonemizer;
 use session::KittenSession;
 
 #[cfg(target_arch = "wasm32")]
@@ -197,8 +198,8 @@ fn get_or_init_phonemizer() -> Result<std::sync::MutexGuard<'static, Option<Phon
     if guard.is_none() {
         tracing::info!("Initializing global phonemizer");
         *guard = Some(Phonemizer::new().map_err(|e| {
-            tracing::error!("Failed to create phonemizer: {}", e);
-            JsValue::from(format!("Failed to create phonemizer: {}", e))
+            tracing::error!("Failed to create phonemizer: {:?}", e);
+            JsValue::from(format!("Failed to create phonemizer: {:?}", e))
         })?);
         tracing::info!("Phonemizer initialized successfully");
     } else {
@@ -210,7 +211,7 @@ fn get_or_init_phonemizer() -> Result<std::sync::MutexGuard<'static, Option<Phon
 
 pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
     tracing::trace!("Phonemizing text: {}", text);
-    let result = phonemizer.phonemize_text(text);
+    let result = phonemizer.phonemize(text);
     tracing::trace!("Phonemization result: {}", result);
     result
 }

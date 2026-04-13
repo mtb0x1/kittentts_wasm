@@ -51,6 +51,8 @@ ndarray = "0.15"
 cmudict-fast = "0.8.0"
 zip = "8"
 
+phonemica = { git = "https://github.com/mtb0x1/phonemica" }
+
 
 [build-dependencies]
 hf-hub = "0.5"
