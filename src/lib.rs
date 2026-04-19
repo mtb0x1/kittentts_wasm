@@ -18,7 +18,6 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use web_sys::Blob;
 
-pub mod phonemizer;
 mod session;
 
 #[cfg(target_arch = "wasm32")]
@@ -26,8 +25,11 @@ mod voices;
 #[cfg(target_arch = "wasm32")]
 mod wav;
 
-//use phonemizer::phonemizer::Phonemizer;
+#[cfg(target_arch = "wasm32")]
 use phonemica::wasm::Phonemizer;
+
+#[cfg(not(target_arch = "wasm32"))]
+use phonemica::IPAPhonemizer as Phonemizer;
 use session::KittenSession;
 
 #[cfg(target_arch = "wasm32")]
@@ -211,7 +213,7 @@ fn get_or_init_phonemizer() -> Result<std::sync::MutexGuard<'static, Option<Phon
 
 pub fn phonemize(text: &str, phonemizer: &Phonemizer) -> String {
     tracing::trace!("Phonemizing text: {}", text);
-    let result = phonemizer.phonemize(text);
+    let result = phonemizer.phonemize_text(text);
     tracing::trace!("Phonemization result: {}", result);
     result
 }
@@ -233,12 +235,8 @@ pub async fn infer_on_cpu_with_params(
 
     let phonemizer_guard = get_or_init_phonemizer()?;
     let phonemizer = phonemizer_guard.as_ref().expect("phonemizer initialized");
-    let tokens_lookup = phonemizer::phonemizer::get_tokens();
-    let tokens: Vec<i64> = phonemize(text, phonemizer)
-        .chars()
-        .flat_map(|c| tokens_lookup.get(&c))
-        .cloned()
-        .collect::<Vec<_>>();
+
+    let tokens: Vec<i64> = phonemize(text, phonemizer).chars().map(|c| c as i64).collect();
 
     let tokens_len = tokens.len();
     tracing::debug!("Phonemization complete: {} tokens", tokens_len);
