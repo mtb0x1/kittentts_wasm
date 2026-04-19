@@ -26,9 +26,6 @@ jobs:
     - name: Build WASM
       run: just build-release
 
-    - name: Test phonemizer/tokenizer (won't fail ever)
-      run: just test
-            
     - name: Upload artifact
       uses: actions/upload-artifact@v7
       with:

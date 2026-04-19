@@ -51,7 +51,7 @@ ndarray = "0.15"
 cmudict-fast = "0.8.0"
 zip = "8"
 
-phonemica = { git = "https://github.com/mtb0x1/phonemica" }
+phonemica = { git = "https://github.com/mtb0x1/phonemica", rev = "e2d6cef9a6850da5c90caf0a21c6faa56d3f76a8" }
 
 
 [build-dependencies]
